@@ -1,0 +1,26 @@
+version: 2
+updates:
+  - package-ecosystem: npm
+    directory: /program-capacity-back
+    schedule:
+      interval: weekly
+  - package-ecosystem: npm
+    directory: /program-capacity-front
+    schedule:
+      interval: weekly
+  - package-ecosystem: npm
+    directory: /e2e
+    schedule:
+      interval: weekly
+  - package-ecosystem: docker
+    directory: /program-capacity-back
+    schedule:
+      interval: weekly
+  - package-ecosystem: docker
+    directory: /program-capacity-front
+    schedule:
+      interval: weekly
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
