@@ -1,0 +1,65 @@
+@use '@/styles/breakpoints' as *;
+
+.page {
+  display: grid;
+  grid-template-columns: minmax(420px, 1fr) minmax(0, 1.15fr);
+  min-height: 100dvh;
+
+  @include down($tablet) {
+    grid-template-columns: 1fr;
+    grid-template-rows: 160px auto;
+  }
+}
+
+.formColumn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-10) var(--space-6);
+  background: var(--surface);
+
+  @include down($tablet) {
+    grid-row: 2;
+    align-items: flex-start;
+    padding: var(--space-6) var(--space-5) var(--space-10);
+  }
+}
+
+.formInner {
+  width: min(380px, 100%);
+}
+
+.brand {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin-bottom: var(--space-10);
+  font-weight: 600;
+
+  @include down($tablet) {
+    margin-bottom: var(--space-5);
+  }
+}
+
+.title {
+  font-size: var(--text-2xl);
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+
+.subtitle {
+  margin: var(--space-1) 0 var(--space-6);
+  color: var(--muted);
+}
+
+.art {
+  background: url('/assets/login-art.webp') center bottom / cover no-repeat;
+  border-left: 1px solid var(--line);
+
+  @include down($tablet) {
+    grid-row: 1;
+    background-position: center 75%;
+    border-bottom: 1px solid var(--line);
+    border-left: 0;
+  }
+}

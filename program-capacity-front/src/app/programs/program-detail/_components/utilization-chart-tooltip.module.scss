@@ -1,0 +1,31 @@
+.tooltip {
+  padding: var(--space-2) var(--space-3);
+  background: var(--surface);
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-toast);
+  font-size: var(--text-sm);
+}
+
+.value {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.keyReserved {
+  width: 12px;
+  height: 2px;
+  background: var(--reserved);
+}
+
+.keyLimit {
+  width: 12px;
+  border-top: 1px dashed var(--muted);
+}
+
+.detail {
+  margin-top: 2px;
+  font-size: var(--text-xs);
+  color: var(--muted);
+}

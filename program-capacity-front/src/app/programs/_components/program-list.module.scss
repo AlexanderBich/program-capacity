@@ -1,0 +1,25 @@
+@use '@/styles/breakpoints' as *;
+@use '@/styles/mixins' as *;
+@use './program-grid' as *;
+
+.list {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+}
+
+.columns {
+  @include eyebrow;
+  @include program-grid;
+
+  padding: var(--space-2) var(--space-4);
+  border-bottom: 1px solid var(--line);
+
+  @include down($wide) {
+    display: none;
+  }
+}
+
+.alignEnd {
+  text-align: right;
+}

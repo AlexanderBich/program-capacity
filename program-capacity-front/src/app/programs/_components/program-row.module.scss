@@ -1,0 +1,128 @@
+@use '@/styles/breakpoints' as *;
+@use '@/styles/mixins' as *;
+@use './program-grid' as *;
+
+.row {
+  @include program-grid;
+
+  padding: var(--space-3) var(--space-4);
+  border-bottom: 1px solid var(--line);
+  color: inherit;
+  text-decoration: none;
+
+  @include hover {
+    background: var(--page);
+  }
+
+  li:last-child & {
+    border-bottom: 0;
+    border-radius: 0 0 var(--radius-lg) var(--radius-lg);
+  }
+
+  @include down($wide) {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: var(--space-3) var(--space-4);
+    padding: var(--space-4);
+  }
+
+  @include down($mobile) {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+.identity {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+
+  @include down($wide) {
+    grid-column: 1 / -1;
+  }
+}
+
+.name {
+  font-weight: 500;
+}
+
+.code {
+  @include figures;
+
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: var(--text-xs);
+  color: var(--muted);
+}
+
+.usage {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-width: 0;
+
+  @include down($wide) {
+    grid-column: 1 / -1;
+  }
+}
+
+.percent {
+  @include figures;
+
+  flex: none;
+  width: 48px;
+  font-size: var(--text-xs);
+  color: var(--ink-soft);
+  text-align: right;
+}
+
+.figure {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  padding: 2px var(--space-1);
+  margin: -2px calc(var(--space-1) * -1);
+  border-radius: var(--radius-sm);
+  font-size: var(--text-sm);
+
+  @include down($wide) {
+    align-items: flex-start;
+  }
+}
+
+.available {
+  font-size: var(--text-md);
+  font-weight: 500;
+
+  @include down($mobile) {
+    grid-column: 1 / -1;
+    font-size: var(--text-lg);
+  }
+}
+
+.flash {
+  @include flash-animation;
+}
+
+.figureLabel {
+  @include eyebrow;
+
+  display: none;
+
+  @include down($wide) {
+    display: block;
+  }
+}
+
+.reconciled {
+  display: flex;
+  flex-direction: column;
+  font-size: var(--text-xs);
+  color: var(--muted);
+  text-align: right;
+
+  @include down($wide) {
+    text-align: left;
+  }
+}

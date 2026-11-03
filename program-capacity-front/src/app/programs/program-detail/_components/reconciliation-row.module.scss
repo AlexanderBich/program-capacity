@@ -1,0 +1,103 @@
+@use '@/styles/breakpoints' as *;
+@use '@/styles/mixins' as *;
+
+.item {
+  border-bottom: 1px solid var(--line);
+
+  &:last-child {
+    border-bottom: 0;
+  }
+}
+
+.summary {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-1) var(--space-4);
+  padding: var(--space-2) var(--space-4);
+  font-size: var(--text-sm);
+  list-style: none;
+  cursor: pointer;
+
+  &::-webkit-details-marker {
+    display: none;
+  }
+
+  @include hover {
+    background: var(--page);
+  }
+}
+
+.chevron {
+  flex: none;
+  color: var(--muted);
+  transition: transform 0.12s;
+
+  details[open] & {
+    transform: rotate(90deg);
+  }
+}
+
+.when {
+  width: 72px;
+  color: var(--muted);
+}
+
+.drift {
+  min-width: 140px;
+}
+
+.counts {
+  font-size: var(--text-xs);
+  color: var(--muted);
+}
+
+.details {
+  padding: 0 var(--space-4) var(--space-3) var(--space-8);
+}
+
+.asOf {
+  font-size: var(--text-xs);
+  color: var(--muted);
+}
+
+.adjustments {
+  margin-top: var(--space-2);
+}
+
+.adjustment {
+  display: grid;
+  grid-template-columns: minmax(0, 1.2fr) 72px minmax(0, 1.5fr);
+  gap: var(--space-3);
+  padding: 2px 0;
+  font-size: var(--text-xs);
+
+  @include down($mobile) {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+}
+
+.invoice {
+  @include figures;
+
+  overflow-wrap: anywhere;
+}
+
+.action {
+  color: var(--muted);
+}
+
+.change {
+  @include figures;
+
+  text-align: right;
+
+  @include down($mobile) {
+    grid-column: 1 / -1;
+    text-align: left;
+  }
+}
+
+.inFlight {
+  white-space: nowrap;
+}

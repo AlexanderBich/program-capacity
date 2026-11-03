@@ -1,0 +1,24 @@
+@use '@/styles/mixins' as *;
+
+.panel {
+  overflow-x: auto;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+}
+
+.table {
+  min-width: 420px;
+
+  th {
+    @include eyebrow;
+
+    padding: var(--space-2) var(--space-4);
+    border-bottom: 1px solid var(--line);
+    text-align: left;
+  }
+
+  th.numeric {
+    text-align: right;
+  }
+}

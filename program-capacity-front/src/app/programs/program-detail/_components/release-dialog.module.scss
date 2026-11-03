@@ -1,0 +1,53 @@
+@use '@/styles/mixins' as *;
+
+.summary {
+  margin-bottom: var(--space-3);
+  padding: var(--space-2) var(--space-3);
+  background: var(--page);
+  border-radius: var(--radius);
+}
+
+.summaryRow {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 0 var(--space-3);
+  font-size: var(--text-sm);
+
+  dt {
+    color: var(--muted);
+  }
+}
+
+.rate {
+  @include figures;
+}
+
+.note {
+  margin-bottom: var(--space-3);
+  font-size: var(--text-xs);
+  color: var(--muted);
+}
+
+.history {
+  margin-bottom: var(--space-4);
+}
+
+.historyTitle {
+  @include eyebrow;
+
+  margin-bottom: var(--space-1);
+}
+
+.historyRow {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 0 var(--space-3);
+  font-size: var(--text-sm);
+}
+
+.historyDate {
+  font-size: var(--text-xs);
+  color: var(--muted);
+}

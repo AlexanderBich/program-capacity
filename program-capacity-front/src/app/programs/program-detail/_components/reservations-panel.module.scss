@@ -1,0 +1,29 @@
+@use '@/styles/breakpoints' as *;
+@use '@/styles/mixins' as *;
+
+.loading {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding: var(--space-4);
+}
+
+.table {
+  th {
+    @include eyebrow;
+
+    padding: var(--space-2) var(--space-4);
+    border-bottom: 1px solid var(--line);
+    text-align: left;
+  }
+
+  th.numeric {
+    text-align: right;
+  }
+
+  @include down($mobile) {
+    thead {
+      display: none;
+    }
+  }
+}

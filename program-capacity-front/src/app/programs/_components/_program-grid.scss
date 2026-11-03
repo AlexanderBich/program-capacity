@@ -1,0 +1,7 @@
+// The column recipe shared by the program list's header and its rows, so they always line up.
+@mixin program-grid {
+  display: grid;
+  grid-template-columns: minmax(200px, 1.5fr) minmax(120px, 1fr) repeat(3, minmax(140px, auto)) 88px;
+  align-items: center;
+  gap: var(--space-4);
+}

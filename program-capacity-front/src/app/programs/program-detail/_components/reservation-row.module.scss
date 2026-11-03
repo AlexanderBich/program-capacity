@@ -1,0 +1,93 @@
+@use '@/styles/breakpoints' as *;
+@use '@/styles/mixins' as *;
+
+.row {
+  border-bottom: 1px solid var(--line);
+
+  &:last-child {
+    border-bottom: 0;
+  }
+
+  td {
+    padding: var(--space-3) var(--space-4);
+    vertical-align: top;
+  }
+
+  @include down($mobile) {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: var(--space-2) var(--space-3);
+    padding: var(--space-3) var(--space-4);
+
+    td {
+      padding: 0;
+    }
+  }
+}
+
+.invoice {
+  min-width: 0;
+
+  @include down($mobile) {
+    grid-column: 1 / -1;
+  }
+}
+
+.invoiceId {
+  @include figures;
+
+  display: block;
+  font-size: var(--text-sm);
+  font-weight: 500;
+  overflow-wrap: anywhere;
+}
+
+.origin {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-1) var(--space-2);
+  margin-top: 2px;
+  font-size: var(--text-xs);
+  color: var(--muted);
+}
+
+.amount {
+  font-size: var(--text-sm);
+  text-align: right;
+
+  @include down($mobile) {
+    text-align: left;
+
+    &::before {
+      @include eyebrow;
+
+      content: attr(data-label);
+      display: block;
+    }
+  }
+}
+
+.secondary {
+  @include figures;
+
+  display: block;
+  font-size: var(--text-xs);
+  color: var(--muted);
+}
+
+.status {
+  white-space: nowrap;
+
+  @include down($mobile) {
+    align-self: center;
+  }
+}
+
+.action {
+  text-align: right;
+
+  @include down($mobile) {
+    justify-self: end;
+  }
+}

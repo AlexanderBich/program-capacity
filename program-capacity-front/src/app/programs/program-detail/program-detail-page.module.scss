@@ -1,0 +1,38 @@
+@use '@/styles/breakpoints' as *;
+@use '@/styles/mixins' as *;
+
+.loading {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.code {
+  @include figures;
+}
+
+.layout {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.columns {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  align-items: start;
+  gap: var(--space-4);
+}
+
+.withForm {
+  grid-template-columns: minmax(0, 1fr) 340px;
+
+  @include down($tablet) {
+    grid-template-columns: minmax(0, 1fr);
+
+    // The form is the primary action: on narrow screens it comes before the list it adds to.
+    > :last-child {
+      order: -1;
+    }
+  }
+}
