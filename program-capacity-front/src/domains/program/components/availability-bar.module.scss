@@ -1,0 +1,46 @@
+.track {
+  position: relative;
+  width: 100%;
+  overflow: hidden;
+  background: var(--reserved-track);
+  border-radius: var(--radius-sm);
+}
+
+.sm {
+  height: 8px;
+}
+
+.lg {
+  height: 16px;
+}
+
+.fill {
+  height: 100%;
+  border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+  transition: width 0.35s ease-out;
+
+  @media (prefers-reduced-motion: reduce) {
+    transition: none;
+  }
+}
+
+.normal {
+  background: var(--reserved);
+}
+
+.high {
+  background: var(--warning-fill);
+}
+
+.over {
+  background: var(--danger);
+}
+
+.tick {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 1px;
+  background: var(--surface);
+  opacity: 0.6;
+}
