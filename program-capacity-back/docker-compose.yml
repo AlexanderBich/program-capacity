@@ -1,0 +1,148 @@
+name: program-capacity
+
+x-api-environment: &api-environment
+  NODE_ENV: development
+  SERVER_PORT: "4000"
+  CORS_ORIGINS: http://localhost:5173,http://localhost:8080
+  TRUST_PROXY_HOPS: "1"
+  API_RATE_LIMIT_PER_MINUTE: ${API_RATE_LIMIT_PER_MINUTE:-600}
+  PROBE_TOKEN: local-probe-token-change-me
+  SWAGGER_USERNAME: docs
+  SWAGGER_PASSWORD: docs-local-password
+  DB_HOST: postgres
+  DB_PORT: "5432"
+  DB_USER: capacity
+  DB_PASS: capacity
+  DB_NAME: capacity
+  DB_SSL: "false"
+  DB_POOL_SIZE: "20"
+  DB_STATEMENT_TIMEOUT_MS: "30000"
+  DB_IDLE_IN_TRANSACTION_TIMEOUT_MS: "60000"
+  JWT_SECRET: local-development-secret-at-least-32-chars
+  JWT_ISSUER: program-capacity
+  JWT_AUDIENCE: program-capacity-clients
+  JWT_ACCESS_TTL_SECONDS: "900"
+  AUTH_REFRESH_TTL_SECONDS: "604800"
+  AUTH_COOKIE_SECURE: "false"
+  AUTH_RATE_LIMIT_PER_MINUTE: ${AUTH_RATE_LIMIT_PER_MINUTE:-20}
+  AUTH_ACCOUNT_RATE_LIMIT_PER_MINUTE: ${AUTH_ACCOUNT_RATE_LIMIT_PER_MINUTE:-10}
+  CAPACITY_LOCK_TIMEOUT_MS: "3000"
+  RECONCILIATION_GRACE_SECONDS: "300"
+  AVAILABILITY_STREAM_HEARTBEAT_SECONDS: "20"
+  AVAILABILITY_STREAM_MAX_PER_USER: "10"
+  FX_MAX_RATE_AGE_SECONDS: "86400"
+  KAFKA_BROKERS: kafka:29092
+  KAFKA_CLIENT_ID: program-capacity
+  KAFKA_CONSUMER_GROUP_ID: program-capacity
+  KAFKA_SSL: "false"
+  KAFKA_TOPIC_TREASURY_CAPACITY: treasury.capacity.v1
+  KAFKA_TOPIC_TREASURY_FX_RATES: treasury.fx-rates.v1
+  KAFKA_TOPIC_DEAD_LETTER: treasury.dead-letter.v1
+  KAFKA_TOPIC_CAPACITY_EVENTS: program-capacity.events.v1
+  KAFKA_CONSUMER_ENABLED: "true"
+  CRONS_ENABLED: "true"
+  SEED_PASSWORD: capacity-demo-password
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: capacity
+      POSTGRES_PASSWORD: capacity
+      POSTGRES_DB: capacity
+    ports:
+      - "55432:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U capacity -d capacity"]
+      interval: 3s
+      timeout: 3s
+      retries: 20
+
+  kafka:
+    image: apache/kafka:3.9.1
+    environment:
+      KAFKA_NODE_ID: 1
+      KAFKA_PROCESS_ROLES: broker,controller
+      KAFKA_LISTENERS: INTERNAL://:29092,EXTERNAL://:9092,CONTROLLER://:9093
+      KAFKA_ADVERTISED_LISTENERS: INTERNAL://kafka:29092,EXTERNAL://localhost:19092
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: CONTROLLER:PLAINTEXT,INTERNAL:PLAINTEXT,EXTERNAL:PLAINTEXT
+      KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
+      KAFKA_INTER_BROKER_LISTENER_NAME: INTERNAL
+      KAFKA_CONTROLLER_QUORUM_VOTERS: 1@kafka:9093
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+      KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: "false"
+      KAFKA_MESSAGE_MAX_BYTES: 16000000
+      KAFKA_REPLICA_FETCH_MAX_BYTES: 16000000
+    ports:
+      - "19092:9092"
+    volumes:
+      - kafka-data:/var/lib/kafka/data
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "/opt/kafka/bin/kafka-broker-api-versions.sh --bootstrap-server localhost:29092 > /dev/null 2>&1",
+        ]
+      interval: 5s
+      timeout: 10s
+      retries: 20
+
+  # Topics are infrastructure, provisioned once rather than auto-created by whichever client comes first.
+  kafka-init:
+    image: apache/kafka:3.9.1
+    depends_on:
+      kafka:
+        condition: service_healthy
+    entrypoint: ["/bin/sh", "-c"]
+    command:
+      - |
+        set -e
+        for topic in treasury.capacity.v1 treasury.fx-rates.v1 treasury.dead-letter.v1 program-capacity.events.v1; do
+          /opt/kafka/bin/kafka-topics.sh --bootstrap-server kafka:29092 --create --if-not-exists \
+            --topic "$$topic" --partitions 6 --replication-factor 1 --config max.message.bytes=16000000
+        done
+
+  api:
+    build: .
+    depends_on:
+      postgres:
+        condition: service_healthy
+      kafka-init:
+        condition: service_completed_successfully
+    environment: *api-environment
+    # exec: node must replace the shell as PID 1, or SIGTERM never reaches it and there is no graceful shutdown.
+    command:
+      - sh
+      - -c
+      - node node_modules/typeorm/cli.js -d dist/data-source.js migration:run && node dist/dev/seed.js && exec node dist/main
+    ports:
+      - "4000:4000"
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "node",
+          "-e",
+          "fetch('http://localhost:4000/api/v1/health/live',{headers:{'x-probe-token':process.env.PROBE_TOKEN}}).then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))",
+        ]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  # Plays the external treasury system: rates, incremental changes, periodic bulk reconciliations.
+  treasury-simulator:
+    build: .
+    depends_on:
+      api:
+        condition: service_healthy
+    environment: *api-environment
+    command: ["node", "dist/dev/treasury-simulator.js"]
+
+volumes:
+  postgres-data:
+  kafka-data:

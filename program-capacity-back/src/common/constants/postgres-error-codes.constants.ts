@@ -1,0 +1,3 @@
+export const POSTGRES_UNIQUE_VIOLATION = "23505";
+
+export const POSTGRES_LOCK_NOT_AVAILABLE = "55P03";
