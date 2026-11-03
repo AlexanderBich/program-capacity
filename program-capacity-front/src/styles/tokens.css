@@ -1,0 +1,76 @@
+:root {
+  /* Surfaces: warm security paper, so the sign-in art and the working screens share one material. */
+  --page: #f1eee4;
+  --surface: #fbfaf5;
+  --surface-sunken: #e9e5d8;
+  --overlay: rgb(22 24 29 / 45%);
+
+  /* Ink */
+  --ink: #16181d;
+  --ink-soft: #3d4148;
+  --muted: #65686f;
+  --line: #dcd7c8;
+  --line-strong: #b8b2a0;
+
+  /* On the dark header */
+  --on-ink: #f7f5ee;
+  --on-ink-muted: #a9abae;
+  --on-ink-line: #343740;
+
+  /* Action */
+  --accent: #0b6b4d;
+  --accent-hover: #08573e;
+  --accent-soft: #d9ebe2;
+  --on-accent: #fff;
+  --live: #4fd1a1;
+
+  /* Data */
+  --reserved: #223056;
+  --reserved-track: #d8dbe4;
+
+  /* Status: reserved for meaning, never used as a series color */
+  --warning: #8a5600;
+  --warning-fill: #c07a00;
+  --warning-soft: #f6e8c9;
+  --danger: #a8261d;
+  --danger-soft: #f7dedb;
+  --info: #3b4596;
+  --info-soft: #e2e4f3;
+
+  /* Live updates */
+  --flash: #fbe9a8;
+
+  /* Type */
+  --font-sans: 'IBM Plex Sans', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --font-mono: 'IBM Plex Mono', ui-monospace, 'SF Mono', menlo, monospace;
+  --text-xs: 12px;
+  --text-sm: 13px;
+  --text-md: 14px;
+  --text-lg: 16px;
+  --text-2xl: 26px;
+  --text-hero: 48px;
+
+  /* Space */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-8: 32px;
+  --space-10: 40px;
+  --space-12: 48px;
+
+  /* Shape */
+  --radius-sm: 3px;
+  --radius: 5px;
+  --radius-lg: 8px;
+  --shadow-dialog: 0 18px 50px rgb(22 24 29 / 22%);
+  --shadow-toast: 0 8px 24px rgb(22 24 29 / 18%);
+
+  /* Layout */
+  --header-height: 56px;
+  --content-width: 1240px;
+  --control-height: 38px;
+  --control-height-sm: 30px;
+}

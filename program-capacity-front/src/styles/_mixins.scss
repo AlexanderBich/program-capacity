@@ -1,0 +1,33 @@
+// Uppercase micro-label above a figure or a column.
+@mixin eyebrow {
+  font-size: var(--text-xs);
+  font-weight: 500;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+// Amounts, codes and anything read digit by digit.
+@mixin figures {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+}
+
+// The brief highlight on a value a live update just changed.
+@mixin flash-animation {
+  @keyframes flash {
+    from {
+      background-color: var(--flash);
+    }
+
+    to {
+      background-color: transparent;
+    }
+  }
+
+  animation: flash 0.9s ease-out;
+
+  @media (prefers-reduced-motion: reduce) {
+    animation: none;
+  }
+}
