@@ -1,0 +1,27 @@
+.skeleton {
+  background: var(--surface-sunken);
+  border-radius: var(--radius-sm);
+  animation: pulse 1.4s ease-in-out infinite;
+
+  @media (prefers-reduced-motion: reduce) {
+    animation: none;
+  }
+}
+
+.line {
+  height: var(--space-4);
+}
+
+.row {
+  height: var(--space-12);
+}
+
+.block {
+  height: 180px;
+}
+
+@keyframes pulse {
+  50% {
+    opacity: 0.55;
+  }
+}

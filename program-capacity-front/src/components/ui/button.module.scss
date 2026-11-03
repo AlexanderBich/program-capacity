@@ -1,0 +1,77 @@
+@use '@/styles/breakpoints' as *;
+
+.button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  border: 1px solid transparent;
+  border-radius: var(--radius);
+  font-weight: 500;
+  white-space: nowrap;
+  cursor: pointer;
+  transition:
+    background-color 0.12s,
+    border-color 0.12s;
+
+  &:disabled {
+    opacity: 0.55;
+    cursor: not-allowed;
+  }
+}
+
+.md {
+  min-height: var(--control-height);
+  padding: 0 var(--space-4);
+  font-size: var(--text-md);
+}
+
+.sm {
+  min-height: var(--control-height-sm);
+  padding: 0 var(--space-3);
+  font-size: var(--text-sm);
+}
+
+.primary {
+  background: var(--accent);
+  color: var(--on-accent);
+
+  &:not(:disabled) {
+    @include hover {
+      background: var(--accent-hover);
+    }
+  }
+}
+
+.secondary {
+  background: var(--surface);
+  border-color: var(--line-strong);
+  color: var(--ink);
+
+  &:not(:disabled) {
+    @include hover {
+      border-color: var(--ink-soft);
+    }
+  }
+}
+
+.ghost {
+  background: transparent;
+  color: var(--ink-soft);
+
+  &:not(:disabled) {
+    @include hover {
+      background: var(--surface-sunken);
+    }
+  }
+}
+
+.spinner {
+  animation: spin 0.9s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}

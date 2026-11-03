@@ -1,0 +1,16 @@
+@use '@/styles/mixins' as *;
+
+.money {
+  @include figures;
+
+  white-space: nowrap;
+}
+
+.negative {
+  color: var(--danger);
+}
+
+.currency {
+  font-size: 0.85em;
+  color: var(--muted);
+}

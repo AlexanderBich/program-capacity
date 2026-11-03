@@ -1,0 +1,88 @@
+@use '@/styles/breakpoints' as *;
+
+.header {
+  position: sticky;
+  top: 0;
+  z-index: 5;
+  background: var(--ink);
+  color: var(--on-ink);
+}
+
+.inner {
+  display: flex;
+  align-items: center;
+  gap: var(--space-6);
+  max-width: var(--content-width);
+  min-height: var(--header-height);
+  margin: 0 auto;
+  padding: 0 var(--space-5);
+
+  @include down($mobile) {
+    flex-wrap: wrap;
+    gap: 0 var(--space-3);
+    padding: var(--space-2) var(--space-4) 0;
+  }
+}
+
+.brand {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-weight: 600;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.brandName {
+  @include down($mobile) {
+    font-size: var(--text-md);
+  }
+}
+
+.navigation {
+  display: flex;
+  align-items: stretch;
+  gap: var(--space-1);
+  align-self: stretch;
+
+  @include down($mobile) {
+    order: 3;
+    width: 100%;
+  }
+}
+
+.link {
+  display: inline-flex;
+  align-items: center;
+  padding: 0 var(--space-3);
+  border-bottom: 2px solid transparent;
+  border-top: 2px solid transparent;
+  font-size: var(--text-sm);
+  color: var(--on-ink-muted);
+  text-decoration: none;
+
+  @include hover {
+    color: var(--on-ink);
+  }
+
+  @include down($mobile) {
+    min-height: 36px;
+    padding: 0 var(--space-2);
+  }
+}
+
+.active {
+  border-bottom-color: var(--live);
+  color: var(--on-ink);
+}
+
+.actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  margin-left: auto;
+
+  @include down($mobile) {
+    gap: var(--space-2);
+  }
+}

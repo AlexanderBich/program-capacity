@@ -1,0 +1,16 @@
+@use '@/styles/mixins' as *;
+
+.pagination {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--space-1);
+  padding: var(--space-2) var(--space-4);
+}
+
+.position {
+  @include figures;
+
+  font-size: var(--text-sm);
+  color: var(--muted);
+}

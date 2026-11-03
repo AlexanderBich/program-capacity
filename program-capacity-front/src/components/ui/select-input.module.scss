@@ -1,0 +1,33 @@
+@use '@/styles/mixins' as *;
+
+.wrapper {
+  position: relative;
+  display: block;
+}
+
+.select {
+  @include figures;
+
+  appearance: none;
+  width: 100%;
+  min-height: var(--control-height);
+  padding: 0 var(--space-8) 0 var(--space-3);
+  background: var(--surface);
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius);
+  cursor: pointer;
+
+  &:focus-visible {
+    outline-offset: 0;
+    border-color: var(--accent);
+  }
+}
+
+.chevron {
+  position: absolute;
+  top: 50%;
+  right: var(--space-3);
+  transform: translateY(-50%);
+  color: var(--muted);
+  pointer-events: none;
+}

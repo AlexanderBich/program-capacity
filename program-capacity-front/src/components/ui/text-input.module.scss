@@ -1,0 +1,27 @@
+@use '@/styles/mixins' as *;
+
+.input {
+  width: 100%;
+  min-height: var(--control-height);
+  padding: 0 var(--space-3);
+  background: var(--surface);
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius);
+
+  &::placeholder {
+    color: var(--muted);
+  }
+
+  &:focus-visible {
+    outline-offset: 0;
+    border-color: var(--accent);
+  }
+}
+
+.invalid {
+  border-color: var(--danger);
+}
+
+.numeric {
+  @include figures;
+}
