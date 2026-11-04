@@ -13,7 +13,7 @@ ENV VITE_DEMO_PASSWORD=$VITE_DEMO_PASSWORD
 RUN npm run build
 
 # Runs as a non-root user, like the API.
-FROM nginxinc/nginx-unprivileged:1.27-alpine AS runner
+FROM nginxinc/nginx-unprivileged:1.31-alpine AS runner
 COPY nginx.conf /etc/nginx/conf.d/default.conf
 COPY security-headers.inc /etc/nginx/security-headers.inc
 COPY --from=build /app/dist /usr/share/nginx/html
