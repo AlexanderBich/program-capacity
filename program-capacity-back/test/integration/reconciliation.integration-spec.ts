@@ -666,7 +666,7 @@ describe("Treasury reconciliation", () => {
 
       expect(await availability(program.id)).toMatchObject({ reserved: "40008.00" });
       await expectLedgerInvariants(app, program.id);
-      // Generous for a slow machine. The lock is held for about a second: see Load in the README.
+      // Generous for a slow machine. The lock is held for about a second.
       expect(writerWaitedMs).toBeLessThan(5000);
     });
 

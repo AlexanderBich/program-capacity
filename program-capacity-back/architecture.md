@@ -2,6 +2,8 @@
 
 How this codebase is organized. Follow it when adding code; if something is not covered, follow the closest rule by analogy.
 
+This is about the code. How the system works, and why, is in [docs](../docs/design.md).
+
 ## Layers
 
 Each module under `src/modules/<module>/` has three layers plus a shared persistence model. You should be able to tell which layer you are in from the words on the page.
