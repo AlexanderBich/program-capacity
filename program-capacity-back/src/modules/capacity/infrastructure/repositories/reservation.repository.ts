@@ -19,16 +19,18 @@ export class ReservationRepository {
   findByProgramIdAndInvoiceId(
     programId: string,
     invoiceId: string,
-    manager: EntityManager = this.reservationRepositoryRaw.manager,
+    options?: { manager?: EntityManager },
   ): Promise<Nullable<ReservationEntity>> {
+    const manager = options?.manager ?? this.reservationRepositoryRaw.manager;
     return manager.findOneBy(ReservationEntity, { programId, invoiceId });
   }
 
   findByIdAndProgramId(
     id: string,
     programId: string,
-    manager: EntityManager = this.reservationRepositoryRaw.manager,
+    options?: { manager?: EntityManager },
   ): Promise<Nullable<ReservationEntity>> {
+    const manager = options?.manager ?? this.reservationRepositoryRaw.manager;
     return manager.findOneBy(ReservationEntity, { id, programId });
   }
 
@@ -66,46 +68,58 @@ export class ReservationRepository {
   }
 
   findManyActiveByProgramId(
-    manager: EntityManager,
     programId: string,
+    options?: { manager?: EntityManager },
   ): Promise<ReservationEntity[]> {
+    const manager = options?.manager ?? this.reservationRepositoryRaw.manager;
     return manager.findBy(ReservationEntity, { programId, status: ReservationStatus.ACTIVE });
   }
 
   findManyByProgramIdAndInvoiceIds(
-    manager: EntityManager,
     programId: string,
     invoiceIds: string[],
+    options?: { manager?: EntityManager },
   ): Promise<ReservationEntity[]> {
+    const manager = options?.manager ?? this.reservationRepositoryRaw.manager;
     return manager.findBy(ReservationEntity, { programId, invoiceId: In(invoiceIds) });
   }
 
-  create(manager: EntityManager, values: CreateReservation): Promise<ReservationEntity> {
+  create(
+    values: CreateReservation,
+    options?: { manager?: EntityManager },
+  ): Promise<ReservationEntity> {
+    const manager = options?.manager ?? this.reservationRepositoryRaw.manager;
     return manager.save(ReservationEntity, manager.create(ReservationEntity, values));
   }
 
   async createMany(
-    manager: EntityManager,
     values: CreateReservation[],
-    options: { chunkSize: number },
+    options: { chunkSize: number; manager?: EntityManager },
   ): Promise<void> {
+    const manager = options.manager ?? this.reservationRepositoryRaw.manager;
     for (let start = 0; start < values.length; start += options.chunkSize) {
       await manager.insert(ReservationEntity, values.slice(start, start + options.chunkSize));
     }
   }
 
-  async updateById(manager: EntityManager, id: string, values: UpdateReservation): Promise<void> {
+  async updateById(
+    id: string,
+    values: UpdateReservation,
+    options?: { manager?: EntityManager },
+  ): Promise<void> {
+    const manager = options?.manager ?? this.reservationRepositoryRaw.manager;
     await manager.update(ReservationEntity, { id }, values);
   }
 
   /** One statement however many rows, because a program's writers are waiting behind this. */
   async updateManyFromSnapshot(
-    manager: EntityManager,
     reservations: ReservationEntity[],
+    options?: { manager?: EntityManager },
   ): Promise<void> {
     if (reservations.length === 0) {
       return;
     }
+    const manager = options?.manager ?? this.reservationRepositoryRaw.manager;
     await manager.query(
       `UPDATE reservations AS r
           SET status = v.status,
@@ -132,9 +146,10 @@ export class ReservationRepository {
 
   /** SQL aggregation: the typed API cannot express SUM. Only active reservations hold anything. */
   async sumOutstandingProgramMinorByProgramId(
-    manager: EntityManager,
     programId: string,
+    options?: { manager?: EntityManager },
   ): Promise<bigint> {
+    const manager = options?.manager ?? this.reservationRepositoryRaw.manager;
     const row = await manager
       .createQueryBuilder(ReservationEntity, "reservation")
       .select("COALESCE(SUM(reservation.outstandingProgramMinor), 0)", "total")

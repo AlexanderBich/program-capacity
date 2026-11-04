@@ -26,7 +26,11 @@ export class CapacityLedgerEntryRepository {
     });
   }
 
-  async create(manager: EntityManager, values: CreateCapacityLedgerEntry): Promise<void> {
+  async create(
+    values: CreateCapacityLedgerEntry,
+    options?: { manager?: EntityManager },
+  ): Promise<void> {
+    const manager = options?.manager ?? this.capacityLedgerEntryRepositoryRaw.manager;
     await manager.insert(CapacityLedgerEntryEntity, values);
   }
 }

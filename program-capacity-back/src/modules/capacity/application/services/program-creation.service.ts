@@ -32,18 +32,21 @@ export class ProgramCreationService {
 
     try {
       return await this.dataSource.transaction(async (manager) => {
-        const program = await this.programRepository.create(manager, {
-          code: params.code,
-          name: params.name,
-          currency: params.currency,
-          creditLimitMinor: 0n,
-          reservedMinor: 0n,
-          version: 0,
-          lastTreasurySequence: 0,
-          lastSnapshotSequence: 0,
-          lastLimitSequence: 0,
-          lastReconciledAt: null,
-        });
+        const program = await this.programRepository.create(
+          {
+            code: params.code,
+            name: params.name,
+            currency: params.currency,
+            creditLimitMinor: 0n,
+            reservedMinor: 0n,
+            version: 0,
+            lastTreasurySequence: 0,
+            lastSnapshotSequence: 0,
+            lastLimitSequence: 0,
+            lastReconciledAt: null,
+          },
+          { manager },
+        );
         return this.capacityChangeService.commitChange(manager, {
           program,
           type: CapacityLedgerEntryType.PROGRAM_CREATED,

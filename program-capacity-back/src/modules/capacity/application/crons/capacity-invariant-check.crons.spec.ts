@@ -109,8 +109,8 @@ describe("CapacityInvariantCheckCrons", () => {
     await crons.checkCapacityInvariants();
 
     expect(calls).toEqual(["lock", "check"]);
-    expect(tryAcquireInvariantCheckLock.mock.calls[0][0]).toBe(manager);
-    expect(findManyViolatingCapacityInvariants.mock.calls[0][0]).toBe(manager);
+    expect(tryAcquireInvariantCheckLock.mock.calls[0][0].manager).toBe(manager);
+    expect(findManyViolatingCapacityInvariants.mock.calls[0][0].manager).toBe(manager);
   });
 
   it("lets a failing check surface instead of reporting a clean bill", async () => {

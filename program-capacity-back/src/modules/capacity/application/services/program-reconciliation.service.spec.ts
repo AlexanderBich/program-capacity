@@ -126,7 +126,7 @@ describe("ProgramReconciliationService", () => {
   const storedFor = (invoiceId: string) =>
     stored.find((reservation) => reservation.invoiceId === invoiceId);
 
-  const recordedReconciliation = () => createReconciliation.mock.calls[0][1];
+  const recordedReconciliation = () => createReconciliation.mock.calls[0][0];
 
   beforeEach(() => {
     jest.useFakeTimers({ now });
@@ -151,24 +151,21 @@ describe("ProgramReconciliationService", () => {
     findManyActive = jest.fn(async () =>
       stored.filter((reservation) => reservation.status === ReservationStatus.ACTIVE).map(copyOf),
     );
-    findManyByInvoiceIds = jest.fn(
-      async (_manager: EntityManager, _programId: string, invoiceIds: string[]) =>
-        stored.filter((reservation) => invoiceIds.includes(reservation.invoiceId)).map(copyOf),
+    findManyByInvoiceIds = jest.fn(async (_programId: string, invoiceIds: string[]) =>
+      stored.filter((reservation) => invoiceIds.includes(reservation.invoiceId)).map(copyOf),
     );
-    createMany = jest.fn(async (_manager: EntityManager, values: CreateReservation[]) => {
+    createMany = jest.fn(async (values: CreateReservation[]) => {
       for (const value of values) {
         stored.push(
           Object.assign(new ReservationEntity(), { id: `new-${value.invoiceId}` }, value),
         );
       }
     });
-    updateManyFromSnapshot = jest.fn(
-      async (_manager: EntityManager, reservations: ReservationEntity[]) => {
-        for (const reservation of reservations) {
-          stored[stored.findIndex((item) => item.id === reservation.id)] = copyOf(reservation);
-        }
-      },
-    );
+    updateManyFromSnapshot = jest.fn(async (reservations: ReservationEntity[]) => {
+      for (const reservation of reservations) {
+        stored[stored.findIndex((item) => item.id === reservation.id)] = copyOf(reservation);
+      }
+    });
     findOldestUnabsorbedEvent = jest.fn(async () => oldestUnabsorbedEvent);
     createReconciliation = jest.fn(async () => ({ id: "reconciliation-1" }));
     createAdjustments = jest.fn();
@@ -237,8 +234,8 @@ describe("ProgramReconciliationService", () => {
 
       await service.reconcile(buildSnapshot(positions));
 
-      const [usedManager, reconciliationId, recorded] = createAdjustments.mock.calls[0];
-      expect(usedManager).toBe(manager);
+      const [reconciliationId, recorded, options] = createAdjustments.mock.calls[0];
+      expect(options.manager).toBe(manager);
       expect(reconciliationId).toBe("reconciliation-1");
       expect(recorded).toHaveLength(positions.length);
       expect(recorded[0]).toEqual({
@@ -343,7 +340,7 @@ describe("ProgramReconciliationService", () => {
       );
 
       expect(createMany).toHaveBeenCalledTimes(1);
-      expect(createMany.mock.calls[0][1]).toEqual([
+      expect(createMany.mock.calls[0][0]).toEqual([
         {
           programId: "program-1",
           invoiceId: "INV-A",
@@ -381,7 +378,10 @@ describe("ProgramReconciliationService", () => {
           lastApiChangeAt: null,
         },
       ]);
-      expect(createMany.mock.calls[0][2]).toEqual({ chunkSize: RECONCILIATION_WRITE_CHUNK_SIZE });
+      expect(createMany.mock.calls[0][1]).toEqual({
+        chunkSize: RECONCILIATION_WRITE_CHUNK_SIZE,
+        manager,
+      });
       expect(outcome).toEqual({ isApplied: true, reservedDriftMinor: 14325n });
       expect(program.reservedMinor).toBe(14325n);
     });
@@ -401,7 +401,7 @@ describe("ProgramReconciliationService", () => {
         outstandingProgramMinor: 10000n,
       });
       expect(
-        updateManyFromSnapshot.mock.calls[0][1].map((item: ReservationEntity) => item.invoiceId),
+        updateManyFromSnapshot.mock.calls[0][0].map((item: ReservationEntity) => item.invoiceId),
       ).toEqual(["INV-B"]);
       expect(outcome).toEqual({ isApplied: true, reservedDriftMinor: -4000n });
     });
@@ -485,7 +485,7 @@ describe("ProgramReconciliationService", () => {
 
       await service.reconcile(buildSnapshot([position("INV-A", "110.00")]));
 
-      expect(updateManyFromSnapshot.mock.calls[0][1]).toHaveLength(1);
+      expect(updateManyFromSnapshot.mock.calls[0][0]).toHaveLength(1);
     });
 
     it("records what it did, with the amounts as they were before it was applied", async () => {
@@ -503,7 +503,7 @@ describe("ProgramReconciliationService", () => {
       await service.reconcile(snapshot);
 
       expect(createReconciliation).toHaveBeenCalledTimes(1);
-      expect(createReconciliation.mock.calls[0][0]).toBe(manager);
+      expect(createReconciliation.mock.calls[0][1].manager).toBe(manager);
       expect(recordedReconciliation()).toEqual({
         programId: "program-1",
         treasurySequence: 11,
@@ -681,7 +681,7 @@ describe("ProgramReconciliationService", () => {
 
       await service.reconcile(buildSnapshot(positions));
 
-      const lookedUp: string[][] = findManyByInvoiceIds.mock.calls.map((call) => call[2]);
+      const lookedUp: string[][] = findManyByInvoiceIds.mock.calls.map((call) => call[1]);
       expect(lookedUp.map((invoiceIds) => invoiceIds.length)).toEqual([
         RECONCILIATION_LOOKUP_CHUNK_SIZE,
         RECONCILIATION_LOOKUP_CHUNK_SIZE,
@@ -699,8 +699,9 @@ describe("ProgramReconciliationService", () => {
     it("reads the program's active reservations through the transaction", async () => {
       await service.reconcile(buildSnapshot([position("INV-A", "1.00")]));
 
-      expect(findManyActive).toHaveBeenCalledWith(manager, "program-1");
-      expect(findManyByInvoiceIds.mock.calls[0].slice(0, 2)).toEqual([manager, "program-1"]);
+      expect(findManyActive).toHaveBeenCalledWith("program-1", { manager });
+      expect(findManyByInvoiceIds.mock.calls[0][0]).toBe("program-1");
+      expect(findManyByInvoiceIds.mock.calls[0][2]).toEqual({ manager });
     });
   });
 
@@ -763,9 +764,9 @@ describe("ProgramReconciliationService", () => {
 
       expect(findOldestUnabsorbedEvent).toHaveBeenCalledTimes(1);
       expect(findOldestUnabsorbedEvent).toHaveBeenCalledWith(
-        manager,
         "PROGRAM-1",
         new Date(asOf.getTime() - 60_000),
+        { manager },
       );
     });
 

@@ -117,7 +117,9 @@ export class ProgramReconciliationService {
     await this.writeDiff(manager, program, diff);
 
     const reservedAfterMinor =
-      await this.reservationRepository.sumOutstandingProgramMinorByProgramId(manager, program.id);
+      await this.reservationRepository.sumOutstandingProgramMinorByProgramId(program.id, {
+        manager,
+      });
     const reservedDriftMinor = reservedAfterMinor - reservedBeforeMinor;
 
     const updatedProgram = await this.capacityChangeService.commitChange(manager, {
@@ -134,26 +136,27 @@ export class ProgramReconciliationService {
       name: snapshot.name,
     });
 
-    const reconciliation = await this.programReconciliationRepository.create(manager, {
-      programId: program.id,
-      treasurySequence: snapshot.sequence,
-      asOf: snapshot.asOf,
-      creditLimitBeforeMinor,
-      creditLimitAfterMinor: updatedProgram.creditLimitMinor,
-      reservedBeforeMinor,
-      reservedAfterMinor,
-      positionsReceived: snapshot.positions.length,
-      insertedCount: diff.toInsert.length,
-      adjustedCount: diff.toAdjust.length,
-      closedCount: diff.toClose.length,
-      inFlightSkippedCount: diff.inFlightSkippedCount,
-      adjustments: adjustmentSample,
-    });
-    await this.reconciliationAdjustmentRepository.createMany(
-      manager,
-      reconciliation.id,
-      adjustments,
+    const reconciliation = await this.programReconciliationRepository.create(
+      {
+        programId: program.id,
+        treasurySequence: snapshot.sequence,
+        asOf: snapshot.asOf,
+        creditLimitBeforeMinor,
+        creditLimitAfterMinor: updatedProgram.creditLimitMinor,
+        reservedBeforeMinor,
+        reservedAfterMinor,
+        positionsReceived: snapshot.positions.length,
+        insertedCount: diff.toInsert.length,
+        adjustedCount: diff.toAdjust.length,
+        closedCount: diff.toClose.length,
+        inFlightSkippedCount: diff.inFlightSkippedCount,
+        adjustments: adjustmentSample,
+      },
+      { manager },
     );
+    await this.reconciliationAdjustmentRepository.createMany(reconciliation.id, adjustments, {
+      manager,
+    });
 
     if (CapacityMathUtils.computeAvailableMinor(updatedProgram) < 0n) {
       this.logger.critical("Reconciliation left a program over its credit limit", {
@@ -172,10 +175,9 @@ export class ProgramReconciliationService {
     programId: string,
     validated: ValidatedSnapshot,
   ): Promise<ReservationEntity[]> {
-    const reservations = await this.reservationRepository.findManyActiveByProgramId(
+    const reservations = await this.reservationRepository.findManyActiveByProgramId(programId, {
       manager,
-      programId,
-    );
+    });
 
     const activeInvoiceIds = new Set(reservations.map((reservation) => reservation.invoiceId));
     const otherInvoiceIds = validated.positions
@@ -184,9 +186,9 @@ export class ProgramReconciliationService {
     for (let start = 0; start < otherInvoiceIds.length; start += RECONCILIATION_LOOKUP_CHUNK_SIZE) {
       reservations.push(
         ...(await this.reservationRepository.findManyByProgramIdAndInvoiceIds(
-          manager,
           programId,
           otherInvoiceIds.slice(start, start + RECONCILIATION_LOOKUP_CHUNK_SIZE),
+          { manager },
         )),
       );
     }
@@ -208,9 +210,9 @@ export class ProgramReconciliationService {
     const graceMs = this.config.getOrThrow<number>("capacity.reconciliationGraceSeconds") * 1000;
     const oldestUnabsorbed =
       await this.capacityOutboxEventRepository.findOldestCreatedAtByProgramCodeUnpublishedOrPublishedAfter(
-        manager,
         programCode,
         new Date(asOf.getTime() - graceMs),
+        { manager },
       );
     return new Date(
       Math.min(
@@ -227,7 +229,6 @@ export class ProgramReconciliationService {
     diff: ReconciliationDiff,
   ): Promise<void> {
     await this.reservationRepository.createMany(
-      manager,
       diff.toInsert.map((position) => ({
         programId: program.id,
         invoiceId: position.invoiceId,
@@ -246,7 +247,7 @@ export class ProgramReconciliationService {
         createdBy: null,
         lastApiChangeAt: null,
       })),
-      { chunkSize: RECONCILIATION_WRITE_CHUNK_SIZE },
+      { chunkSize: RECONCILIATION_WRITE_CHUNK_SIZE, manager },
     );
 
     for (const { reservation, position } of diff.toAdjust) {
@@ -265,9 +266,9 @@ export class ProgramReconciliationService {
       reservation.outstandingInvoiceMinor = 0n;
       reservation.outstandingProgramMinor = 0n;
     }
-    await this.reservationRepository.updateManyFromSnapshot(manager, [
-      ...diff.toAdjust.map(({ reservation }) => reservation),
-      ...diff.toClose,
-    ]);
+    await this.reservationRepository.updateManyFromSnapshot(
+      [...diff.toAdjust.map(({ reservation }) => reservation), ...diff.toClose],
+      { manager },
+    );
   }
 }

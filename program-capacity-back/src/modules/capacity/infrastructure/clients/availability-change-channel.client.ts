@@ -54,10 +54,10 @@ export class AvailabilityChangeChannelClient implements OnModuleInit, OnModuleDe
   }
 
   async publishInTransaction(
-    manager: EntityManager,
     change: AvailabilityChangeNotification,
+    options: { manager: EntityManager },
   ): Promise<void> {
-    await manager.query("SELECT pg_notify($1, $2)", [
+    await options.manager.query("SELECT pg_notify($1, $2)", [
       AVAILABILITY_NOTIFICATION_CHANNEL,
       JSON.stringify(change),
     ]);

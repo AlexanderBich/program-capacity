@@ -73,11 +73,11 @@ describe("ProgramLockService", () => {
     calls = [];
     startOrder = [];
     transaction = jest.fn((work) => work(manager));
-    findByIdWithWriteLock = jest.fn(async (_manager: EntityManager, id: string) => {
+    findByIdWithWriteLock = jest.fn(async (id: string) => {
       calls.push("lock row");
       return buildProgram(id);
     });
-    findByCodeWithWriteLock = jest.fn(async (_manager: EntityManager, code: string) => {
+    findByCodeWithWriteLock = jest.fn(async (code: string) => {
       calls.push("lock row");
       return buildProgram(code.toLowerCase());
     });
@@ -132,7 +132,7 @@ describe("ProgramLockService", () => {
       });
 
       expect(calls).toEqual(["set lock_timeout", "lock row", "work"]);
-      expect(setTransactionLockTimeout).toHaveBeenCalledWith(manager, LOCK_TIMEOUT_MS);
+      expect(setTransactionLockTimeout).toHaveBeenCalledWith(LOCK_TIMEOUT_MS, { manager });
     });
 
     it("finds the program by id or by code as asked", async () => {
@@ -140,9 +140,9 @@ describe("ProgramLockService", () => {
       await service.withLockedProgramByCode("PROGRAM-2", async () => undefined);
 
       expect(findByIdWithWriteLock).toHaveBeenCalledTimes(1);
-      expect(findByIdWithWriteLock).toHaveBeenCalledWith(manager, "program-1");
+      expect(findByIdWithWriteLock).toHaveBeenCalledWith("program-1", { manager });
       expect(findByCodeWithWriteLock).toHaveBeenCalledTimes(1);
-      expect(findByCodeWithWriteLock).toHaveBeenCalledWith(manager, "PROGRAM-2");
+      expect(findByCodeWithWriteLock).toHaveBeenCalledWith("PROGRAM-2", { manager });
     });
 
     it("reports an unknown program by the id or code it was asked for, without running the work", async () => {

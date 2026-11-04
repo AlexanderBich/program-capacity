@@ -101,7 +101,7 @@ describe("TreasuryCapacitySyncService", () => {
     insertIfCodeAbsent = jest.fn();
     updateProgram = jest.fn();
     findReservation = jest.fn().mockResolvedValue(null);
-    createReservation = jest.fn(async (_manager: EntityManager, values: CreateReservation) =>
+    createReservation = jest.fn(async (values: CreateReservation) =>
       Object.assign(new ReservationEntity(), { id: "reservation-new" }, values),
     );
     findRelease = jest.fn().mockResolvedValue(null);
@@ -237,24 +237,27 @@ describe("TreasuryCapacitySyncService", () => {
     it("books a reservation treasury made, as treasury's own", async () => {
       await service.applyCapacityReserved(reserved);
 
-      expect(createReservation).toHaveBeenCalledWith(manager, {
-        programId: "program-1",
-        invoiceId: "INV-7",
-        status: ReservationStatus.ACTIVE,
-        source: CapacityChangeSource.TREASURY,
-        invoiceCurrency: "EUR",
-        invoiceAmountMinor: 10000n,
-        outstandingInvoiceMinor: 10000n,
-        programCurrency: "USD",
-        programAmountMinor: 10812n,
-        outstandingProgramMinor: 10812n,
-        fxBaseCurrency: null,
-        fxQuoteCurrency: null,
-        fxRate: null,
-        fxRateAsOf: null,
-        createdBy: null,
-        lastApiChangeAt: null,
-      });
+      expect(createReservation).toHaveBeenCalledWith(
+        {
+          programId: "program-1",
+          invoiceId: "INV-7",
+          status: ReservationStatus.ACTIVE,
+          source: CapacityChangeSource.TREASURY,
+          invoiceCurrency: "EUR",
+          invoiceAmountMinor: 10000n,
+          outstandingInvoiceMinor: 10000n,
+          programCurrency: "USD",
+          programAmountMinor: 10812n,
+          outstandingProgramMinor: 10812n,
+          fxBaseCurrency: null,
+          fxQuoteCurrency: null,
+          fxRate: null,
+          fxRateAsOf: null,
+          createdBy: null,
+          lastApiChangeAt: null,
+        },
+        { manager },
+      );
       expect(commitChange).toHaveBeenCalledTimes(1);
       expect(commitChange).toHaveBeenCalledWith(manager, {
         program,
@@ -286,7 +289,7 @@ describe("TreasuryCapacitySyncService", () => {
         programAmount: "1500",
       });
 
-      expect(createReservation.mock.calls[0][1]).toMatchObject({
+      expect(createReservation.mock.calls[0][0]).toMatchObject({
         invoiceAmountMinor: 1000n,
         outstandingInvoiceMinor: 1000n,
         programCurrency: "JPY",
@@ -301,12 +304,16 @@ describe("TreasuryCapacitySyncService", () => {
       await service.applyCapacityReserved(reserved);
 
       expect(updateProgram).toHaveBeenCalledTimes(1);
-      expect(updateProgram).toHaveBeenCalledWith(manager, "program-1", {
-        lastTreasurySequence: 11,
-      });
+      expect(updateProgram).toHaveBeenCalledWith(
+        "program-1",
+        {
+          lastTreasurySequence: 11,
+        },
+        { manager },
+      );
       expect(createReservation).not.toHaveBeenCalled();
       expect(commitChange).not.toHaveBeenCalled();
-      expect(findReservation).toHaveBeenCalledWith("program-1", "INV-7", manager);
+      expect(findReservation).toHaveBeenCalledWith("program-1", "INV-7", { manager });
     });
 
     it.each([
@@ -341,9 +348,13 @@ describe("TreasuryCapacitySyncService", () => {
 
       await service.applyCapacityReserved({ ...reserved, sequence: 9 });
 
-      expect(updateProgram).toHaveBeenCalledWith(manager, "program-1", {
-        lastTreasurySequence: 20,
-      });
+      expect(updateProgram).toHaveBeenCalledWith(
+        "program-1",
+        {
+          lastTreasurySequence: 20,
+        },
+        { manager },
+      );
     });
 
     it.each([
@@ -460,9 +471,13 @@ describe("TreasuryCapacitySyncService", () => {
       expect(applyRelease).not.toHaveBeenCalled();
       expect(findRelease).not.toHaveBeenCalled();
       expect(updateProgram).toHaveBeenCalledTimes(1);
-      expect(updateProgram).toHaveBeenCalledWith(manager, "program-1", {
-        lastTreasurySequence: 11,
-      });
+      expect(updateProgram).toHaveBeenCalledWith(
+        "program-1",
+        {
+          lastTreasurySequence: 11,
+        },
+        { manager },
+      );
       expect(logger.debug).toHaveBeenCalledWith("Treasury release changed nothing", {
         programCode: "PROGRAM-1",
         invoiceId: "INV-7",
@@ -472,28 +487,30 @@ describe("TreasuryCapacitySyncService", () => {
 
     it("changes nothing but the sequence for a repayment already applied to the reservation", async () => {
       findReservation.mockResolvedValue(buildReservation());
-      findRelease.mockImplementation(
-        async (_manager: EntityManager, reservationId: string, repaymentId: string) =>
-          reservationId === "reservation-7" && repaymentId === "RPM-3"
-            ? new ReservationReleaseEntity()
-            : null,
+      findRelease.mockImplementation(async (reservationId: string, repaymentId: string) =>
+        reservationId === "reservation-7" && repaymentId === "RPM-3"
+          ? new ReservationReleaseEntity()
+          : null,
       );
 
       await service.applyCapacityReleased(released);
 
       expect(applyRelease).not.toHaveBeenCalled();
-      expect(updateProgram).toHaveBeenCalledWith(manager, "program-1", {
-        lastTreasurySequence: 11,
-      });
+      expect(updateProgram).toHaveBeenCalledWith(
+        "program-1",
+        {
+          lastTreasurySequence: 11,
+        },
+        { manager },
+      );
     });
 
     it("applies a different repayment of the same reservation", async () => {
       findReservation.mockResolvedValue(buildReservation());
-      findRelease.mockImplementation(
-        async (_manager: EntityManager, reservationId: string, repaymentId: string) =>
-          reservationId === "reservation-7" && repaymentId === "RPM-3"
-            ? new ReservationReleaseEntity()
-            : null,
+      findRelease.mockImplementation(async (reservationId: string, repaymentId: string) =>
+        reservationId === "reservation-7" && repaymentId === "RPM-3"
+          ? new ReservationReleaseEntity()
+          : null,
       );
 
       await service.applyCapacityReleased({ ...released, repaymentId: "RPM-4" });
@@ -514,9 +531,13 @@ describe("TreasuryCapacitySyncService", () => {
       await service.applyCapacityReleased(released);
 
       expect(applyRelease).not.toHaveBeenCalled();
-      expect(updateProgram).toHaveBeenCalledWith(manager, "program-1", {
-        lastTreasurySequence: 11,
-      });
+      expect(updateProgram).toHaveBeenCalledWith(
+        "program-1",
+        {
+          lastTreasurySequence: 11,
+        },
+        { manager },
+      );
     });
 
     it.each([

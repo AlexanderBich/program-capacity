@@ -38,7 +38,7 @@ describe("CapacityOutboxService", () => {
       calls.push("lock");
       return true;
     });
-    findManyOldestUnpublished = jest.fn(async (_manager: EntityManager, limit: number) => {
+    findManyOldestUnpublished = jest.fn(async (limit: number) => {
       calls.push("read");
       return unpublished.slice(0, limit);
     });
@@ -84,7 +84,7 @@ describe("CapacityOutboxService", () => {
         payload: { eventId: "event-3", programVersion: 3 },
       },
     ]);
-    expect(markPublishedByIds).toHaveBeenCalledWith(manager, ["1", "2", "3"], now);
+    expect(markPublishedByIds).toHaveBeenCalledWith(["1", "2", "3"], now, { manager });
   });
 
   it("relays no more than a batch at a time, oldest first", async () => {
@@ -95,7 +95,7 @@ describe("CapacityOutboxService", () => {
       "PROGRAM-A",
       "PROGRAM-B",
     ]);
-    expect(markPublishedByIds).toHaveBeenCalledWith(manager, ["1", "2"], now);
+    expect(markPublishedByIds).toHaveBeenCalledWith(["1", "2"], now, { manager });
   });
 
   it("marks events as published only after the publisher has accepted them", async () => {
@@ -138,8 +138,8 @@ describe("CapacityOutboxService", () => {
   it("does its reads and writes through the one transaction that holds the relay lock", async () => {
     await service.publishOldestEvents({ batchSize: 10, publish });
 
-    expect(tryAcquireRelayLock.mock.calls[0][0]).toBe(manager);
-    expect(findManyOldestUnpublished.mock.calls[0][0]).toBe(manager);
-    expect(markPublishedByIds.mock.calls[0][0]).toBe(manager);
+    expect(tryAcquireRelayLock.mock.calls[0][0].manager).toBe(manager);
+    expect(findManyOldestUnpublished.mock.calls[0][1].manager).toBe(manager);
+    expect(markPublishedByIds.mock.calls[0][2].manager).toBe(manager);
   });
 });

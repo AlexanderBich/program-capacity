@@ -31,8 +31,8 @@ export class CapacityInvariantCheckCrons {
     }
 
     const violations = await this.dataSource.transaction(async (manager) =>
-      (await this.programRepository.tryAcquireInvariantCheckLock(manager))
-        ? this.programRepository.findManyViolatingCapacityInvariants(manager)
+      (await this.programRepository.tryAcquireInvariantCheckLock({ manager }))
+        ? this.programRepository.findManyViolatingCapacityInvariants({ manager })
         : null,
     );
     // Another replica is on it.

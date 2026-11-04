@@ -1,18 +1,26 @@
 import { Injectable } from "@nestjs/common";
-import { EntityManager } from "typeorm";
+import { InjectRepository } from "@nestjs/typeorm";
+import { EntityManager, Repository } from "typeorm";
 import { RecordedAdjustment } from "@/modules/capacity/capacity.types";
+import { ReconciliationAdjustmentEntity } from "@/modules/capacity/entities/reconciliation-adjustment.entity";
 
 @Injectable()
 export class ReconciliationAdjustmentRepository {
+  constructor(
+    @InjectRepository(ReconciliationAdjustmentEntity)
+    private readonly reconciliationAdjustmentRepositoryRaw: Repository<ReconciliationAdjustmentEntity>,
+  ) {}
+
   /** One statement however many rows, because a program's writers are waiting behind this. */
   async createMany(
-    manager: EntityManager,
     reconciliationId: string,
     adjustments: RecordedAdjustment[],
+    options?: { manager?: EntityManager },
   ): Promise<void> {
     if (adjustments.length === 0) {
       return;
     }
+    const manager = options?.manager ?? this.reconciliationAdjustmentRepositoryRaw.manager;
     await manager.query(
       `INSERT INTO reconciliation_adjustments
          (reconciliation_id, invoice_id, action, outstanding_program_before_minor, outstanding_program_after_minor)

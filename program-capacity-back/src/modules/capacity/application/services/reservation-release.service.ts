@@ -45,7 +45,7 @@ export class ReservationReleaseService {
         const reservation = await this.reservationRepository.findByIdAndProgramId(
           params.reservationId,
           program.id,
-          manager,
+          { manager },
         );
         if (!reservation) {
           throw new ReservationNotFoundError(params.reservationId);
@@ -62,9 +62,9 @@ export class ReservationReleaseService {
         );
 
         const replayed = await this.reservationReleaseRepository.findByReservationIdAndRepaymentId(
-          manager,
           reservation.id,
           params.repaymentId,
+          { manager },
         );
         if (replayed) {
           if (replayed.invoiceAmountMinor !== releaseInvoiceMinor) {
@@ -116,21 +116,28 @@ export class ReservationReleaseService {
         : ReservationStatus.ACTIVE;
     reservation.lastApiChangeAt = isApiRelease ? new Date() : reservation.lastApiChangeAt;
 
-    await this.reservationRepository.updateById(manager, reservation.id, {
-      status: reservation.status,
-      outstandingInvoiceMinor: reservation.outstandingInvoiceMinor,
-      outstandingProgramMinor: reservation.outstandingProgramMinor,
-      lastApiChangeAt: reservation.lastApiChangeAt,
-    });
+    await this.reservationRepository.updateById(
+      reservation.id,
+      {
+        status: reservation.status,
+        outstandingInvoiceMinor: reservation.outstandingInvoiceMinor,
+        outstandingProgramMinor: reservation.outstandingProgramMinor,
+        lastApiChangeAt: reservation.lastApiChangeAt,
+      },
+      { manager },
+    );
 
-    const release = await this.reservationReleaseRepository.create(manager, {
-      reservationId: reservation.id,
-      repaymentId: input.repaymentId,
-      source: input.source,
-      invoiceAmountMinor: input.releaseInvoiceMinor,
-      programAmountMinor: releaseProgramMinor,
-      createdBy: input.actor,
-    });
+    const release = await this.reservationReleaseRepository.create(
+      {
+        reservationId: reservation.id,
+        repaymentId: input.repaymentId,
+        source: input.source,
+        invoiceAmountMinor: input.releaseInvoiceMinor,
+        programAmountMinor: releaseProgramMinor,
+        createdBy: input.actor,
+      },
+      { manager },
+    );
 
     const updatedProgram = await this.capacityChangeService.commitChange(manager, {
       program,

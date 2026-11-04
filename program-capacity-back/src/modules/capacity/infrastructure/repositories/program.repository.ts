@@ -37,25 +37,35 @@ export class ProgramRepository {
   }
 
   /** Applies to the surrounding transaction only. */
-  async setTransactionLockTimeout(manager: EntityManager, timeoutMs: number): Promise<void> {
-    await manager.query(`SELECT set_config('lock_timeout', $1, true)`, [`${timeoutMs}ms`]);
+  async setTransactionLockTimeout(
+    timeoutMs: number,
+    options: { manager: EntityManager },
+  ): Promise<void> {
+    await options.manager.query(`SELECT set_config('lock_timeout', $1, true)`, [`${timeoutMs}ms`]);
   }
 
-  findByIdWithWriteLock(manager: EntityManager, id: string): Promise<Nullable<ProgramEntity>> {
-    return manager.findOne(ProgramEntity, {
+  findByIdWithWriteLock(
+    id: string,
+    options: { manager: EntityManager },
+  ): Promise<Nullable<ProgramEntity>> {
+    return options.manager.findOne(ProgramEntity, {
       where: { id },
       lock: { mode: "pessimistic_write" },
     });
   }
 
-  findByCodeWithWriteLock(manager: EntityManager, code: string): Promise<Nullable<ProgramEntity>> {
-    return manager.findOne(ProgramEntity, {
+  findByCodeWithWriteLock(
+    code: string,
+    options: { manager: EntityManager },
+  ): Promise<Nullable<ProgramEntity>> {
+    return options.manager.findOne(ProgramEntity, {
       where: { code },
       lock: { mode: "pessimistic_write" },
     });
   }
 
-  create(manager: EntityManager, values: CreateProgram): Promise<ProgramEntity> {
+  create(values: CreateProgram, options?: { manager?: EntityManager }): Promise<ProgramEntity> {
+    const manager = options?.manager ?? this.programRepositoryRaw.manager;
     return manager.save(ProgramEntity, manager.create(ProgramEntity, values));
   }
 
@@ -68,15 +78,21 @@ export class ProgramRepository {
       .execute();
   }
 
-  async updateById(manager: EntityManager, id: string, values: UpdateProgram): Promise<void> {
+  async updateById(
+    id: string,
+    values: UpdateProgram,
+    options?: { manager?: EntityManager },
+  ): Promise<void> {
+    const manager = options?.manager ?? this.programRepositoryRaw.manager;
     await manager.update(ProgramEntity, { id }, values);
   }
 
   /** Released automatically when the surrounding transaction ends. */
-  async tryAcquireInvariantCheckLock(manager: EntityManager): Promise<boolean> {
-    const [row] = await manager.query(`SELECT pg_try_advisory_xact_lock($1) AS "isAcquired"`, [
-      CAPACITY_INVARIANT_CHECK_ADVISORY_LOCK_KEY,
-    ]);
+  async tryAcquireInvariantCheckLock(options: { manager: EntityManager }): Promise<boolean> {
+    const [row] = await options.manager.query(
+      `SELECT pg_try_advisory_xact_lock($1) AS "isAcquired"`,
+      [CAPACITY_INVARIANT_CHECK_ADVISORY_LOCK_KEY],
+    );
     return row.isAcquired;
   }
 
@@ -84,9 +100,10 @@ export class ProgramRepository {
    * Raw SQL: the typed API cannot express this aggregation. One statement sees one committed state across
    * all three tables, so a change committing meanwhile cannot look like a violation.
    */
-  findManyViolatingCapacityInvariants(
-    manager: EntityManager,
-  ): Promise<CapacityInvariantViolation[]> {
+  findManyViolatingCapacityInvariants(options?: {
+    manager?: EntityManager;
+  }): Promise<CapacityInvariantViolation[]> {
+    const manager = options?.manager ?? this.programRepositoryRaw.manager;
     return manager.query(
       `SELECT p.code AS "programCode",
               p.reserved_minor::text AS "reservedMinor",

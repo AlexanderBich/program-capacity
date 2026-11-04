@@ -58,12 +58,11 @@ const buildHarness = (user: UserEntity) => {
   const events: string[] = [];
   const whileWaitingForLock: { run: () => void } = { run: () => undefined };
 
-  const defaultManager = { kind: "default" } as unknown as EntityManager;
   const transactionManager = { kind: "transaction" } as unknown as EntityManager;
-  const where = (manager?: EntityManager) =>
-    manager === transactionManager
+  const where = (options?: { manager?: EntityManager }) =>
+    options?.manager === transactionManager
       ? "in transaction"
-      : manager
+      : options?.manager
         ? "on another connection"
         : "without one";
 
@@ -74,28 +73,34 @@ const buildHarness = (user: UserEntity) => {
   };
 
   const refreshTokenRepository = {
-    findByTokenHashWithUser: jest.fn(async (tokenHash: string, manager?: EntityManager) => {
-      events.push(`read ${where(manager)}`);
-      const token = tokens.find((candidate) => candidate.tokenHash === tokenHash);
-      return token
-        ? { ...token, user: users.find((candidate) => candidate.id === token.userId) }
-        : null;
-    }),
-    lockFamilyForTransaction: jest.fn(async (manager: EntityManager) => {
-      events.push(`lock ${where(manager)}`);
-      whileWaitingForLock.run();
-    }),
-    create: jest.fn(async (manager: EntityManager, values: Partial<RefreshTokenEntity>) => {
-      events.push(`create ${where(manager)}`);
-      tokens.push({
-        id: `token-${nextTokenNumber++}`,
-        createdAt: new Date(),
-        ...values,
-      } as RefreshTokenEntity);
-    }),
+    findByTokenHashWithUser: jest.fn(
+      async (tokenHash: string, options?: { manager?: EntityManager }) => {
+        events.push(`read ${where(options)}`);
+        const token = tokens.find((candidate) => candidate.tokenHash === tokenHash);
+        return token
+          ? { ...token, user: users.find((candidate) => candidate.id === token.userId) }
+          : null;
+      },
+    ),
+    lockFamilyForTransaction: jest.fn(
+      async (_familyId: string, options: { manager: EntityManager }) => {
+        events.push(`lock ${where(options)}`);
+        whileWaitingForLock.run();
+      },
+    ),
+    create: jest.fn(
+      async (values: Partial<RefreshTokenEntity>, options?: { manager?: EntityManager }) => {
+        events.push(`create ${where(options)}`);
+        tokens.push({
+          id: `token-${nextTokenNumber++}`,
+          createdAt: new Date(),
+          ...values,
+        } as RefreshTokenEntity);
+      },
+    ),
     markRotatedByIdIfNotYetRotated: jest.fn(
-      async (manager: EntityManager, id: string, rotatedAt: Date) => {
-        events.push(`mark rotated ${where(manager)}`);
+      async (id: string, rotatedAt: Date, options?: { manager?: EntityManager }) => {
+        events.push(`mark rotated ${where(options)}`);
         const token = tokens.find(
           (candidate) => candidate.id === id && candidate.rotatedAt === null,
         );
@@ -105,8 +110,8 @@ const buildHarness = (user: UserEntity) => {
       },
     ),
     revokeActiveByFamilyId: jest.fn(
-      async (manager: EntityManager, familyId: string, revokedAt: Date) => {
-        events.push(`revoke family ${where(manager)}`);
+      async (familyId: string, revokedAt: Date, options?: { manager?: EntityManager }) => {
+        events.push(`revoke family ${where(options)}`);
         for (const token of tokens) {
           if (token.familyId === familyId && token.revokedAt === null) {
             token.revokedAt = revokedAt;
@@ -118,7 +123,6 @@ const buildHarness = (user: UserEntity) => {
 
   // A rolled-back transaction leaves no trace, a committed one keeps everything it wrote.
   const dataSource = {
-    manager: defaultManager,
     transaction: jest.fn(async (work: (manager: EntityManager) => Promise<unknown>) => {
       const snapshot = tokens.map((token) => ({ ...token }));
       try {
@@ -241,6 +245,13 @@ describe("AuthSessionService", () => {
       expect(stored.familyId).toMatch(
         /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/,
       );
+    });
+
+    it("writes the one token it issues without opening a transaction", async () => {
+      await harness.service.login({ email: user.email, password: PASSWORD });
+
+      expect(harness.events).toEqual(["create without one"]);
+      expect(harness.dataSource.transaction).not.toHaveBeenCalled();
     });
 
     it("starts a separate family for every login", async () => {

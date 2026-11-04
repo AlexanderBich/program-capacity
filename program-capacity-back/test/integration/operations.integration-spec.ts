@@ -8,6 +8,7 @@ import { TreasuryBacklogMetricsCrons } from "@/modules/treasury/application/cron
 import { SseClient } from "../support/sse-client";
 import {
   API,
+  createAppWithEnv,
   createProgram,
   createTestApp,
   createUser,
@@ -40,17 +41,6 @@ const pollUntil = async <T>(read: () => Promise<T>, expected: T): Promise<void> 
     value = await read();
   }
   expect(value).toBe(expected);
-};
-
-/** Starts an app with these settings, and leaves the environment as it was for whatever runs next. */
-const createAppWithEnv = async (overrides: Record<string, string>) => {
-  const original = Object.fromEntries(Object.keys(overrides).map((key) => [key, process.env[key]]));
-  Object.assign(process.env, overrides);
-  try {
-    return await createTestApp();
-  } finally {
-    Object.assign(process.env, original);
-  }
 };
 
 describe("Operations", () => {

@@ -75,7 +75,7 @@ export class ReservationService {
         const concurrent = await this.reservationRepository.findByProgramIdAndInvoiceId(
           lockedProgram.id,
           params.invoiceId,
-          manager,
+          { manager },
         );
         if (concurrent) {
           this.assertSameRequest(concurrent, { invoiceAmountMinor, currency: params.currency });
@@ -92,21 +92,24 @@ export class ReservationService {
           });
         }
 
-        const reservation = await this.reservationRepository.create(manager, {
-          programId: lockedProgram.id,
-          invoiceId: params.invoiceId,
-          status: ReservationStatus.ACTIVE,
-          source: CapacityChangeSource.API,
-          invoiceCurrency: params.currency,
-          invoiceAmountMinor,
-          outstandingInvoiceMinor: invoiceAmountMinor,
-          programCurrency: lockedProgram.currency,
-          programAmountMinor,
-          outstandingProgramMinor: programAmountMinor,
-          ...this.mapFxRateToColumns(fxRate),
-          createdBy: params.actor,
-          lastApiChangeAt: new Date(),
-        });
+        const reservation = await this.reservationRepository.create(
+          {
+            programId: lockedProgram.id,
+            invoiceId: params.invoiceId,
+            status: ReservationStatus.ACTIVE,
+            source: CapacityChangeSource.API,
+            invoiceCurrency: params.currency,
+            invoiceAmountMinor,
+            outstandingInvoiceMinor: invoiceAmountMinor,
+            programCurrency: lockedProgram.currency,
+            programAmountMinor,
+            outstandingProgramMinor: programAmountMinor,
+            ...this.mapFxRateToColumns(fxRate),
+            createdBy: params.actor,
+            lastApiChangeAt: new Date(),
+          },
+          { manager },
+        );
 
         const updatedProgram = await this.capacityChangeService.commitChange(manager, {
           program: lockedProgram,

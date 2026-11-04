@@ -15,8 +15,8 @@ export class FxRatePublicationService {
   /** The history keeps every published rate, even one delivered too late to become the current one. */
   applyPublishedRate(rate: FxRateQuote): Promise<void> {
     return this.dataSource.transaction(async (manager) => {
-      await this.fxRateHistoryRepository.insertIfPairAndAsOfAbsent(manager, rate);
-      await this.fxRateRepository.upsertIfNewerThanStored(manager, rate);
+      await this.fxRateHistoryRepository.insertIfPairAndAsOfAbsent(rate, { manager });
+      await this.fxRateRepository.upsertIfNewerThanStored(rate, { manager });
     });
   }
 }

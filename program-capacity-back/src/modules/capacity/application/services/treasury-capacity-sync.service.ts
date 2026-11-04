@@ -105,7 +105,7 @@ export class TreasuryCapacitySyncService {
         const existing = await this.reservationRepository.findByProgramIdAndInvoiceId(
           program.id,
           event.invoiceId,
-          manager,
+          { manager },
         );
         if (existing) {
           if (
@@ -122,24 +122,27 @@ export class TreasuryCapacitySyncService {
           return;
         }
 
-        const reservation = await this.reservationRepository.create(manager, {
-          programId: program.id,
-          invoiceId: event.invoiceId,
-          status: ReservationStatus.ACTIVE,
-          source: CapacityChangeSource.TREASURY,
-          invoiceCurrency: event.invoiceCurrency,
-          invoiceAmountMinor,
-          outstandingInvoiceMinor: invoiceAmountMinor,
-          programCurrency: program.currency,
-          programAmountMinor,
-          outstandingProgramMinor: programAmountMinor,
-          fxBaseCurrency: null,
-          fxQuoteCurrency: null,
-          fxRate: null,
-          fxRateAsOf: null,
-          createdBy: null,
-          lastApiChangeAt: null,
-        });
+        const reservation = await this.reservationRepository.create(
+          {
+            programId: program.id,
+            invoiceId: event.invoiceId,
+            status: ReservationStatus.ACTIVE,
+            source: CapacityChangeSource.TREASURY,
+            invoiceCurrency: event.invoiceCurrency,
+            invoiceAmountMinor,
+            outstandingInvoiceMinor: invoiceAmountMinor,
+            programCurrency: program.currency,
+            programAmountMinor,
+            outstandingProgramMinor: programAmountMinor,
+            fxBaseCurrency: null,
+            fxQuoteCurrency: null,
+            fxRate: null,
+            fxRateAsOf: null,
+            createdBy: null,
+            lastApiChangeAt: null,
+          },
+          { manager },
+        );
 
         // Not checked against availability: treasury is the system of record for what it has committed.
         await this.capacityChangeService.commitChange(manager, {
@@ -168,14 +171,14 @@ export class TreasuryCapacitySyncService {
         const reservation = await this.reservationRepository.findByProgramIdAndInvoiceId(
           program.id,
           event.invoiceId,
-          manager,
+          { manager },
         );
         const previousRelease =
           reservation &&
           (await this.reservationReleaseRepository.findByReservationIdAndRepaymentId(
-            manager,
             reservation.id,
             event.repaymentId,
+            { manager },
           ));
         if (!reservation || previousRelease || reservation.outstandingInvoiceMinor === 0n) {
           // Unknown invoice, or already released through the API. The next snapshot settles any gap.
@@ -230,8 +233,10 @@ export class TreasuryCapacitySyncService {
     program: ProgramEntity,
     sequence: number,
   ): Promise<void> {
-    await this.programRepository.updateById(manager, program.id, {
-      lastTreasurySequence: Math.max(program.lastTreasurySequence, sequence),
-    });
+    await this.programRepository.updateById(
+      program.id,
+      { lastTreasurySequence: Math.max(program.lastTreasurySequence, sequence) },
+      { manager },
+    );
   }
 }

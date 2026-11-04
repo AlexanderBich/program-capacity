@@ -80,17 +80,21 @@ describe("CapacityChangeService", () => {
       version: 5,
       updatedAt: now,
     });
-    expect(updateProgram).toHaveBeenCalledWith(manager, "program-1", {
-      name: "Original name",
-      reservedMinor: 30000n,
-      creditLimitMinor: 100000n,
-      version: 5,
-      lastTreasurySequence: 7,
-      lastSnapshotSequence: 7,
-      lastLimitSequence: 7,
-      lastReconciledAt,
-      updatedAt: now,
-    });
+    expect(updateProgram).toHaveBeenCalledWith(
+      "program-1",
+      {
+        name: "Original name",
+        reservedMinor: 30000n,
+        creditLimitMinor: 100000n,
+        version: 5,
+        lastTreasurySequence: 7,
+        lastSnapshotSequence: 7,
+        lastLimitSequence: 7,
+        lastReconciledAt,
+        updatedAt: now,
+      },
+      { manager },
+    );
   });
 
   it("applies both deltas as signed amounts", async () => {
@@ -104,9 +108,9 @@ describe("CapacityChangeService", () => {
 
     expect(updated).toMatchObject({ reservedMinor: 21000n, creditLimitMinor: 150000n });
     expect(updateProgram).toHaveBeenCalledWith(
-      manager,
       "program-1",
       expect.objectContaining({ reservedMinor: 21000n, creditLimitMinor: 150000n }),
+      { manager },
     );
   });
 
@@ -122,13 +126,13 @@ describe("CapacityChangeService", () => {
       lastLimitSequence: 12,
     });
     expect(updateProgram).toHaveBeenCalledWith(
-      manager,
       "program-1",
       expect.objectContaining({
         lastTreasurySequence: 12,
         lastSnapshotSequence: 12,
         lastLimitSequence: 12,
       }),
+      { manager },
     );
   });
 
@@ -163,7 +167,6 @@ describe("CapacityChangeService", () => {
       lastReconciledAt: reconciledAt,
     });
     expect(updateProgram).toHaveBeenCalledWith(
-      manager,
       "program-1",
       expect.objectContaining({
         name: "Renamed by treasury",
@@ -172,6 +175,7 @@ describe("CapacityChangeService", () => {
         lastLimitSequence: 7,
         lastReconciledAt: reconciledAt,
       }),
+      { manager },
     );
   });
 
@@ -179,20 +183,23 @@ describe("CapacityChangeService", () => {
     await service.commitChange(manager, buildReservationChange());
 
     expect(createLedgerEntry).toHaveBeenCalledTimes(1);
-    expect(createLedgerEntry).toHaveBeenCalledWith(manager, {
-      programId: "program-1",
-      programVersion: 5,
-      type: CapacityLedgerEntryType.RESERVED,
-      source: CapacityChangeSource.API,
-      reservedDeltaMinor: 5000n,
-      creditLimitDeltaMinor: 0n,
-      reservedAfterMinor: 30000n,
-      creditLimitAfterMinor: 100000n,
-      reservationId: "reservation-1",
-      invoiceId: "INV-1",
-      actor: "operator@capacity.local",
-      treasurySequence: null,
-    });
+    expect(createLedgerEntry).toHaveBeenCalledWith(
+      {
+        programId: "program-1",
+        programVersion: 5,
+        type: CapacityLedgerEntryType.RESERVED,
+        source: CapacityChangeSource.API,
+        reservedDeltaMinor: 5000n,
+        creditLimitDeltaMinor: 0n,
+        reservedAfterMinor: 30000n,
+        creditLimitAfterMinor: 100000n,
+        reservationId: "reservation-1",
+        invoiceId: "INV-1",
+        actor: "operator@capacity.local",
+        treasurySequence: null,
+      },
+      { manager },
+    );
   });
 
   it("leaves the ledger entry unlinked and records the sequence for a treasury change without a reservation", async () => {
@@ -209,20 +216,23 @@ describe("CapacityChangeService", () => {
       }),
     );
 
-    expect(createLedgerEntry).toHaveBeenCalledWith(manager, {
-      programId: "program-1",
-      programVersion: 5,
-      type: CapacityLedgerEntryType.LIMIT_CHANGED,
-      source: CapacityChangeSource.TREASURY,
-      reservedDeltaMinor: 0n,
-      creditLimitDeltaMinor: 20000n,
-      reservedAfterMinor: 25000n,
-      creditLimitAfterMinor: 120000n,
-      reservationId: null,
-      invoiceId: null,
-      actor: null,
-      treasurySequence: 12,
-    });
+    expect(createLedgerEntry).toHaveBeenCalledWith(
+      {
+        programId: "program-1",
+        programVersion: 5,
+        type: CapacityLedgerEntryType.LIMIT_CHANGED,
+        source: CapacityChangeSource.TREASURY,
+        reservedDeltaMinor: 0n,
+        creditLimitDeltaMinor: 20000n,
+        reservedAfterMinor: 25000n,
+        creditLimitAfterMinor: 120000n,
+        reservationId: null,
+        invoiceId: null,
+        actor: null,
+        treasurySequence: 12,
+      },
+      { manager },
+    );
   });
 
   it("queues an unpublished outbox event stamped with the new version", async () => {
@@ -237,20 +247,23 @@ describe("CapacityChangeService", () => {
     );
 
     expect(createOutboxEvent).toHaveBeenCalledTimes(1);
-    expect(createOutboxEvent).toHaveBeenCalledWith(manager, {
-      programCode: "PROGRAM-1",
-      type: CapacityOutboxEventType.CAPACITY_RESERVED,
-      publishedAt: null,
-      payload: {
-        eventId: expect.stringMatching(uuid),
-        type: CapacityOutboxEventType.CAPACITY_RESERVED,
+    expect(createOutboxEvent).toHaveBeenCalledWith(
+      {
         programCode: "PROGRAM-1",
-        programVersion: 5,
-        occurredAt: "2026-11-03T10:00:00.000Z",
-        invoiceId: "INV-1",
-        programAmount: "50.00",
+        type: CapacityOutboxEventType.CAPACITY_RESERVED,
+        publishedAt: null,
+        payload: {
+          eventId: expect.stringMatching(uuid),
+          type: CapacityOutboxEventType.CAPACITY_RESERVED,
+          programCode: "PROGRAM-1",
+          programVersion: 5,
+          occurredAt: "2026-11-03T10:00:00.000Z",
+          invoiceId: "INV-1",
+          programAmount: "50.00",
+        },
       },
-    });
+      { manager },
+    );
   });
 
   it("gives every outbox event its own id, so treasury can deduplicate", async () => {
@@ -262,7 +275,7 @@ describe("CapacityChangeService", () => {
     await service.commitChange(manager, buildReservationChange({ outboxEvent }));
     await service.commitChange(manager, buildReservationChange({ outboxEvent }));
 
-    const eventIds = createOutboxEvent.mock.calls.map(([, event]) => event.payload.eventId);
+    const eventIds = createOutboxEvent.mock.calls.map(([event]) => event.payload.eventId);
     expect(eventIds).toHaveLength(2);
     expect(eventIds[0]).not.toBe(eventIds[1]);
   });
@@ -277,10 +290,13 @@ describe("CapacityChangeService", () => {
     await service.commitChange(manager, buildReservationChange());
 
     expect(publishInTransaction).toHaveBeenCalledTimes(1);
-    expect(publishInTransaction).toHaveBeenCalledWith(manager, {
-      programId: "program-1",
-      version: 5,
-    });
+    expect(publishInTransaction).toHaveBeenCalledWith(
+      {
+        programId: "program-1",
+        version: 5,
+      },
+      { manager },
+    );
   });
 
   it("does the ledger, outbox and notification writes through the caller's transaction", async () => {
@@ -297,7 +313,7 @@ describe("CapacityChangeService", () => {
       createOutboxEvent,
       publishInTransaction,
     ]) {
-      expect(write.mock.calls[0][0]).toBe(manager);
+      expect(write.mock.calls[0].at(-1).manager).toBe(manager);
     }
   });
 

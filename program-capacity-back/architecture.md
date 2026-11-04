@@ -38,6 +38,17 @@ There is no forced chain: an endpoint-handler may call a repository directly whe
 - Entities end in `Entity`. Every foreign key is both a scalar column and a relation. No `eager`, `lazy` or persistence `cascade`.
 - Prefer TypeORM's typed API. `createQueryBuilder` is for what it cannot express: aggregation and atomic conditional writes.
 
+## Repositories
+
+A repository knows how to reach the data, not who is asking or whether a transaction is open. So the transaction manager is an option, and the last argument:
+
+```ts
+create(values: CreateReservation, options?: { manager?: EntityManager }): Promise<ReservationEntity> {
+  const manager = options?.manager ?? this.reservationRepositoryRaw.manager;
+```
+
+It is required only where the transaction is the whole point of the method, and it would otherwise fail or silently do nothing: row locks, advisory locks released at commit, settings scoped to the transaction, `NOTIFY`.
+
 ## Errors
 
 `ApplicationError` subclasses carry a message and metadata, never a status. The translation to HTTP is explicit, at the boundary, in each module's `http/<module>-error-mapping.utils.ts`, where every entry names a status, a stable `code` and a message. Endpoint-handlers wrap their body and delegate to it in `catch`.
@@ -66,7 +77,7 @@ These keep the money correct, so they are not style:
 
 1. Every mutation of a program's capacity runs inside `ProgramLockService`, which admits a few writers per program and has them take the program's row lock first. This is the only lock order.
 2. All state changes go through `CapacityChangeService.commitChange`, which moves the version and writes the ledger, the outbox and the notification in the caller's transaction.
-3. Inside a locked transaction, all I/O goes through its `EntityManager`. Taking a second pooled connection while holding one can starve the pool.
+3. Inside a transaction, all I/O goes through its `EntityManager`. Taking a second pooled connection while holding one can starve the pool. The compiler cannot see this, since the manager is optional, so `single-connection.integration-spec` runs every flow on a pool of one, where a forgotten manager never gets a connection and fails. A new flow that opens a transaction gets a scenario there.
 
 The invariants: a program's reserved total equals the sum of its reservations' outstanding amounts and the sum of its ledger deltas, and its version equals its gap-free ledger length. `expectLedgerInvariants` checks them in the integration tests, `CapacityInvariantCheckCrons` keeps checking them in production.
 

@@ -102,7 +102,7 @@ describe("ReservationReleaseService", () => {
     );
     updateReservation = jest.fn();
     findRelease = jest.fn().mockResolvedValue(null);
-    createRelease = jest.fn(async (_manager: EntityManager, values: CreateReservationRelease) =>
+    createRelease = jest.fn(async (values: CreateReservationRelease) =>
       Object.assign(new ReservationReleaseEntity(), { id: "release-1" }, values),
     );
     commitChange = jest.fn().mockResolvedValue(updatedProgram);
@@ -127,20 +127,27 @@ describe("ReservationReleaseService", () => {
     it("frees a proportional share of what the reservation holds for a partial repayment", async () => {
       const result = await service.releaseViaApi(request);
 
-      expect(updateReservation).toHaveBeenCalledWith(manager, "reservation-1", {
-        status: ReservationStatus.ACTIVE,
-        outstandingInvoiceMinor: 7000n,
-        outstandingProgramMinor: 7570n,
-        lastApiChangeAt: now,
-      });
-      expect(createRelease).toHaveBeenCalledWith(manager, {
-        reservationId: "reservation-1",
-        repaymentId: "RPM-1",
-        source: CapacityChangeSource.API,
-        invoiceAmountMinor: 3000n,
-        programAmountMinor: 3243n,
-        createdBy: "operator@capacity.local",
-      });
+      expect(updateReservation).toHaveBeenCalledWith(
+        "reservation-1",
+        {
+          status: ReservationStatus.ACTIVE,
+          outstandingInvoiceMinor: 7000n,
+          outstandingProgramMinor: 7570n,
+          lastApiChangeAt: now,
+        },
+        { manager },
+      );
+      expect(createRelease).toHaveBeenCalledWith(
+        {
+          reservationId: "reservation-1",
+          repaymentId: "RPM-1",
+          source: CapacityChangeSource.API,
+          invoiceAmountMinor: 3000n,
+          programAmountMinor: 3243n,
+          createdBy: "operator@capacity.local",
+        },
+        { manager },
+      );
       expect(commitChange).toHaveBeenCalledTimes(1);
       expect(commitChange).toHaveBeenCalledWith(manager, {
         program,
@@ -182,12 +189,16 @@ describe("ReservationReleaseService", () => {
         outstandingInvoiceMinor: 0n,
         outstandingProgramMinor: 0n,
       });
-      expect(updateReservation).toHaveBeenCalledWith(manager, "reservation-1", {
-        status: ReservationStatus.RELEASED,
-        outstandingInvoiceMinor: 0n,
-        outstandingProgramMinor: 0n,
-        lastApiChangeAt: now,
-      });
+      expect(updateReservation).toHaveBeenCalledWith(
+        "reservation-1",
+        {
+          status: ReservationStatus.RELEASED,
+          outstandingInvoiceMinor: 0n,
+          outstandingProgramMinor: 0n,
+          lastApiChangeAt: now,
+        },
+        { manager },
+      );
       expect(commitChange.mock.calls[0][1].reservedDeltaMinor).toBe(-7570n);
     });
 
@@ -254,9 +265,8 @@ describe("ReservationReleaseService", () => {
     });
 
     it("treats a different repayment id as a new repayment", async () => {
-      findRelease.mockImplementation(
-        async (_manager: EntityManager, reservationId: string, repaymentId: string) =>
-          reservationId === "reservation-1" && repaymentId === "RPM-1" ? buildRelease() : null,
+      findRelease.mockImplementation(async (reservationId: string, repaymentId: string) =>
+        reservationId === "reservation-1" && repaymentId === "RPM-1" ? buildRelease() : null,
       );
 
       const result = await service.releaseViaApi({ ...request, repaymentId: "RPM-2" });
@@ -428,20 +438,27 @@ describe("ReservationReleaseService", () => {
     it("applies a treasury release without telling treasury or marking an API change", async () => {
       const result = await service.applyRelease(manager, treasuryRelease());
 
-      expect(updateReservation).toHaveBeenCalledWith(manager, "reservation-1", {
-        status: ReservationStatus.ACTIVE,
-        outstandingInvoiceMinor: 7500n,
-        outstandingProgramMinor: 8110n,
-        lastApiChangeAt: lastChange,
-      });
-      expect(createRelease).toHaveBeenCalledWith(manager, {
-        reservationId: "reservation-1",
-        repaymentId: "RPM-9",
-        source: CapacityChangeSource.TREASURY,
-        invoiceAmountMinor: 2500n,
-        programAmountMinor: 2703n,
-        createdBy: null,
-      });
+      expect(updateReservation).toHaveBeenCalledWith(
+        "reservation-1",
+        {
+          status: ReservationStatus.ACTIVE,
+          outstandingInvoiceMinor: 7500n,
+          outstandingProgramMinor: 8110n,
+          lastApiChangeAt: lastChange,
+        },
+        { manager },
+      );
+      expect(createRelease).toHaveBeenCalledWith(
+        {
+          reservationId: "reservation-1",
+          repaymentId: "RPM-9",
+          source: CapacityChangeSource.TREASURY,
+          invoiceAmountMinor: 2500n,
+          programAmountMinor: 2703n,
+          createdBy: null,
+        },
+        { manager },
+      );
       expect(commitChange).toHaveBeenCalledWith(manager, {
         program,
         type: CapacityLedgerEntryType.RELEASED,
@@ -464,7 +481,7 @@ describe("ReservationReleaseService", () => {
 
       await service.applyRelease(manager, treasuryRelease());
 
-      expect(updateReservation.mock.calls[0][2].lastApiChangeAt).toBeNull();
+      expect(updateReservation.mock.calls[0][1].lastApiChangeAt).toBeNull();
     });
   });
 });

@@ -38,7 +38,7 @@ export class ProgramLockService {
   ): Promise<T> {
     return this.runInLockingTransaction(
       programId,
-      (manager) => this.programRepository.findByIdWithWriteLock(manager, programId),
+      (manager) => this.programRepository.findByIdWithWriteLock(programId, { manager }),
       work,
     );
   }
@@ -49,7 +49,7 @@ export class ProgramLockService {
   ): Promise<T> {
     return this.runInLockingTransaction(
       programCode,
-      (manager) => this.programRepository.findByCodeWithWriteLock(manager, programCode),
+      (manager) => this.programRepository.findByCodeWithWriteLock(programCode, { manager }),
       work,
     );
   }
@@ -63,7 +63,7 @@ export class ProgramLockService {
     await this.acquireSlot(programKey);
     try {
       return await this.dataSource.transaction(async (manager) => {
-        await this.programRepository.setTransactionLockTimeout(manager, this.lockTimeoutMs());
+        await this.programRepository.setTransactionLockTimeout(this.lockTimeoutMs(), { manager });
         const program = await lockProgram(manager);
         this.metricsService.observeProgramLockWait((performance.now() - waitStartedAt) / 1000);
         if (!program) {

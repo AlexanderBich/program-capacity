@@ -33,6 +33,7 @@ npm run stack:down
 |---|---|
 | A limit is never exceeded under parallel requests | `reservations.integration-spec`: "never oversubscribes a program under parallel reservations", "stays consistent under a mix of parallel reserves and releases" |
 | One busy program does not starve the others | `reservations.integration-spec`: "keeps serving other programs while one program's writers queue up" |
+| A transaction never waits for a second connection, which could starve the pool | `single-connection.integration-spec` runs every flow that opens a transaction on a pool of one; "fails a repository call that forgets the manager inside a transaction" shows it would notice |
 | Reserving and releasing are idempotent, even in parallel | `reservations.integration-spec`: "counts parallel duplicates of one invoice exactly once", "frees capacity once when parallel requests carry the same repayment"; e2e `reservations.spec`: "retrying the same invoice reserves only once" |
 | Money conversion is exact and rounds up, for any amount and rate | `money.utils.property.spec` |
 | Partial releases sum to exactly what was reserved, whatever the split | `capacity-math.utils.property.spec`; `reservations.integration-spec`: "supports partial repayments that sum to exactly the reserved amount" |

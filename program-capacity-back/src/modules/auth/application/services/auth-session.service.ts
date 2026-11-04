@@ -41,7 +41,7 @@ export class AuthSessionService {
     if (!user || !user.isActive || !isPasswordValid) {
       throw new InvalidCredentialsError();
     }
-    return this.issueSession(this.dataSource.manager, user, randomUUID());
+    return this.issueSession(user, randomUUID());
   }
 
   async rotateRefreshToken(refreshToken: string): Promise<IssuedSession> {
@@ -52,7 +52,7 @@ export class AuthSessionService {
     }
 
     const session = await this.dataSource.transaction(async (manager) => {
-      await this.refreshTokenRepository.lockFamilyForTransaction(manager, known.familyId);
+      await this.refreshTokenRepository.lockFamilyForTransaction(known.familyId, { manager });
       return this.rotateInLockedFamily(manager, tokenHash);
     });
     // Thrown out here: revoking a stolen family has to commit even though the caller gets an error.
@@ -71,12 +71,10 @@ export class AuthSessionService {
     }
 
     await this.dataSource.transaction(async (manager) => {
-      await this.refreshTokenRepository.lockFamilyForTransaction(manager, stored.familyId);
-      await this.refreshTokenRepository.revokeActiveByFamilyId(
+      await this.refreshTokenRepository.lockFamilyForTransaction(stored.familyId, { manager });
+      await this.refreshTokenRepository.revokeActiveByFamilyId(stored.familyId, new Date(), {
         manager,
-        stored.familyId,
-        new Date(),
-      );
+      });
     });
   }
 
@@ -86,7 +84,9 @@ export class AuthSessionService {
     tokenHash: string,
   ): Promise<Nullable<IssuedSession>> {
     const now = new Date();
-    const stored = await this.refreshTokenRepository.findByTokenHashWithUser(tokenHash, manager);
+    const stored = await this.refreshTokenRepository.findByTokenHashWithUser(tokenHash, {
+      manager,
+    });
     if (!stored?.user?.isActive || stored.revokedAt || stored.expiresAt <= now) {
       return null;
     }
@@ -95,7 +95,7 @@ export class AuthSessionService {
       const isReplayedAfterGrace =
         now.getTime() - stored.rotatedAt.getTime() > REFRESH_TOKEN_ROTATION_GRACE_MS;
       if (isReplayedAfterGrace) {
-        await this.refreshTokenRepository.revokeActiveByFamilyId(manager, stored.familyId, now);
+        await this.refreshTokenRepository.revokeActiveByFamilyId(stored.familyId, now, { manager });
         this.logger.warn("Rotated refresh token replayed, session family revoked", {
           familyId: stored.familyId,
           targetUserId: stored.userId,
@@ -103,16 +103,16 @@ export class AuthSessionService {
         return null;
       }
     } else {
-      await this.refreshTokenRepository.markRotatedByIdIfNotYetRotated(manager, stored.id, now);
+      await this.refreshTokenRepository.markRotatedByIdIfNotYetRotated(stored.id, now, { manager });
     }
 
-    return this.issueSession(manager, stored.user, stored.familyId);
+    return this.issueSession(stored.user, stored.familyId, { manager });
   }
 
   private async issueSession(
-    manager: EntityManager,
     user: UserEntity,
     familyId: string,
+    options?: { manager: EntityManager },
   ): Promise<IssuedSession> {
     const accessToken = await this.jwtService.signAsync({
       sub: user.id,
@@ -124,14 +124,17 @@ export class AuthSessionService {
       Date.now() + this.config.getOrThrow<number>("auth.refreshTtlSeconds") * 1000,
     );
 
-    await this.refreshTokenRepository.create(manager, {
-      userId: user.id,
-      familyId,
-      tokenHash: RefreshTokenUtils.hashToken(refreshToken),
-      expiresAt: refreshTokenExpiresAt,
-      rotatedAt: null,
-      revokedAt: null,
-    });
+    await this.refreshTokenRepository.create(
+      {
+        userId: user.id,
+        familyId,
+        tokenHash: RefreshTokenUtils.hashToken(refreshToken),
+        expiresAt: refreshTokenExpiresAt,
+        rotatedAt: null,
+        revokedAt: null,
+      },
+      options,
+    );
 
     return {
       user,

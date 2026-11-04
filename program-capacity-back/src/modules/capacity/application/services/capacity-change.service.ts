@@ -40,53 +40,63 @@ export class CapacityChangeService {
     program.lastReconciledAt = change.reconciledAt ?? program.lastReconciledAt;
     program.name = change.name ?? program.name;
 
-    await this.programRepository.updateById(manager, program.id, {
-      name: program.name,
-      reservedMinor: program.reservedMinor,
-      creditLimitMinor: program.creditLimitMinor,
-      version: program.version,
-      lastTreasurySequence: program.lastTreasurySequence,
-      lastSnapshotSequence: program.lastSnapshotSequence,
-      lastLimitSequence: program.lastLimitSequence,
-      lastReconciledAt: program.lastReconciledAt,
-      updatedAt: now,
-    });
+    await this.programRepository.updateById(
+      program.id,
+      {
+        name: program.name,
+        reservedMinor: program.reservedMinor,
+        creditLimitMinor: program.creditLimitMinor,
+        version: program.version,
+        lastTreasurySequence: program.lastTreasurySequence,
+        lastSnapshotSequence: program.lastSnapshotSequence,
+        lastLimitSequence: program.lastLimitSequence,
+        lastReconciledAt: program.lastReconciledAt,
+        updatedAt: now,
+      },
+      { manager },
+    );
 
-    await this.capacityLedgerEntryRepository.create(manager, {
-      programId: program.id,
-      programVersion: program.version,
-      type: change.type,
-      source: change.source,
-      reservedDeltaMinor: change.reservedDeltaMinor,
-      creditLimitDeltaMinor: change.creditLimitDeltaMinor,
-      reservedAfterMinor: program.reservedMinor,
-      creditLimitAfterMinor: program.creditLimitMinor,
-      reservationId: change.reservation?.id ?? null,
-      invoiceId: change.reservation?.invoiceId ?? null,
-      actor: change.actor,
-      treasurySequence: change.treasurySequence ?? null,
-    });
+    await this.capacityLedgerEntryRepository.create(
+      {
+        programId: program.id,
+        programVersion: program.version,
+        type: change.type,
+        source: change.source,
+        reservedDeltaMinor: change.reservedDeltaMinor,
+        creditLimitDeltaMinor: change.creditLimitDeltaMinor,
+        reservedAfterMinor: program.reservedMinor,
+        creditLimitAfterMinor: program.creditLimitMinor,
+        reservationId: change.reservation?.id ?? null,
+        invoiceId: change.reservation?.invoiceId ?? null,
+        actor: change.actor,
+        treasurySequence: change.treasurySequence ?? null,
+      },
+      { manager },
+    );
 
     if (change.outboxEvent) {
-      await this.capacityOutboxEventRepository.create(manager, {
-        programCode: program.code,
-        type: change.outboxEvent.type,
-        publishedAt: null,
-        payload: {
-          eventId: randomUUID(),
-          type: change.outboxEvent.type,
+      await this.capacityOutboxEventRepository.create(
+        {
           programCode: program.code,
-          programVersion: program.version,
-          occurredAt: now.toISOString(),
-          ...change.outboxEvent.details,
+          type: change.outboxEvent.type,
+          publishedAt: null,
+          payload: {
+            eventId: randomUUID(),
+            type: change.outboxEvent.type,
+            programCode: program.code,
+            programVersion: program.version,
+            occurredAt: now.toISOString(),
+            ...change.outboxEvent.details,
+          },
         },
-      });
+        { manager },
+      );
     }
 
-    await this.availabilityChangeChannelClient.publishInTransaction(manager, {
-      programId: program.id,
-      version: program.version,
-    });
+    await this.availabilityChangeChannelClient.publishInTransaction(
+      { programId: program.id, version: program.version },
+      { manager },
+    );
 
     return program;
   }

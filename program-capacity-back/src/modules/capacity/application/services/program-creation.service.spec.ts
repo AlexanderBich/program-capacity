@@ -33,7 +33,7 @@ describe("ProgramCreationService", () => {
 
   beforeEach(() => {
     transaction = jest.fn((work) => work(manager));
-    createProgram = jest.fn(async (_manager: EntityManager, values: CreateProgram) =>
+    createProgram = jest.fn(async (values: CreateProgram) =>
       Object.assign(new ProgramEntity(), { id: "program-1" }, values),
     );
     commitChange = jest.fn(async (_manager: EntityManager, change: CapacityChange) =>
@@ -52,18 +52,21 @@ describe("ProgramCreationService", () => {
   it("creates the program empty and gives it its credit limit through a ledgered change", async () => {
     const program = await service.createProgram(request);
 
-    expect(createProgram).toHaveBeenCalledWith(manager, {
-      code: "PROGRAM-1",
-      name: "Euro lending",
-      currency: "USD",
-      creditLimitMinor: 0n,
-      reservedMinor: 0n,
-      version: 0,
-      lastTreasurySequence: 0,
-      lastSnapshotSequence: 0,
-      lastLimitSequence: 0,
-      lastReconciledAt: null,
-    });
+    expect(createProgram).toHaveBeenCalledWith(
+      {
+        code: "PROGRAM-1",
+        name: "Euro lending",
+        currency: "USD",
+        creditLimitMinor: 0n,
+        reservedMinor: 0n,
+        version: 0,
+        lastTreasurySequence: 0,
+        lastSnapshotSequence: 0,
+        lastLimitSequence: 0,
+        lastReconciledAt: null,
+      },
+      { manager },
+    );
     expect(commitChange).toHaveBeenCalledTimes(1);
     expect(commitChange).toHaveBeenCalledWith(manager, {
       program: expect.objectContaining({ id: "program-1", code: "PROGRAM-1" }),

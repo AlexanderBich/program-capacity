@@ -27,9 +27,10 @@ export class ProgramReconciliationRepository {
   }
 
   create(
-    manager: EntityManager,
     values: CreateProgramReconciliation,
+    options?: { manager?: EntityManager },
   ): Promise<ProgramReconciliationEntity> {
+    const manager = options?.manager ?? this.programReconciliationRepositoryRaw.manager;
     return manager.save(
       ProgramReconciliationEntity,
       manager.create(ProgramReconciliationEntity, values),

@@ -10,13 +10,9 @@ import {
   createUser,
   httpServer,
   loginAs,
+  refreshCookieFrom,
   TEST_PASSWORD,
 } from "../support/test-app";
-
-const refreshCookieFrom = (response: request.Response): string =>
-  (response.headers["set-cookie"] as unknown as string[])
-    .find((cookie) => cookie.startsWith("refresh_token="))!
-    .split(";")[0];
 
 describe("Authentication", () => {
   let app: NestExpressApplication;

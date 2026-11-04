@@ -19,13 +19,13 @@ export class CapacityOutboxService {
     publish: (events: OutboxEventForPublishing[]) => Promise<void>;
   }): Promise<number> {
     return this.dataSource.transaction(async (manager) => {
-      if (!(await this.capacityOutboxEventRepository.tryAcquireRelayLock(manager))) {
+      if (!(await this.capacityOutboxEventRepository.tryAcquireRelayLock({ manager }))) {
         return 0;
       }
 
       const events = await this.capacityOutboxEventRepository.findManyOldestUnpublished(
-        manager,
         params.batchSize,
+        { manager },
       );
       if (events.length === 0) {
         return 0;
@@ -39,9 +39,9 @@ export class CapacityOutboxService {
         })),
       );
       await this.capacityOutboxEventRepository.markPublishedByIds(
-        manager,
         events.map((event) => event.id),
         new Date(),
+        { manager },
       );
       return events.length;
     });

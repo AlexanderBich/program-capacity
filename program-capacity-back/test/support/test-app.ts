@@ -23,6 +23,19 @@ export const createTestApp = async (): Promise<NestExpressApplication> => {
   return app;
 };
 
+/** Starts an app with these settings, and leaves the environment as it was for whatever runs next. */
+export const createAppWithEnv = async (
+  overrides: Record<string, string>,
+): Promise<NestExpressApplication> => {
+  const original = Object.fromEntries(Object.keys(overrides).map((key) => [key, process.env[key]]));
+  Object.assign(process.env, overrides);
+  try {
+    return await createTestApp();
+  } finally {
+    Object.assign(process.env, original);
+  }
+};
+
 export const httpServer = (app: NestExpressApplication): Server => app.getHttpServer() as Server;
 
 export const createUser = async (
@@ -47,6 +60,11 @@ export const loginAs = async (app: NestExpressApplication, role: UserRole): Prom
     .expect(200);
   return response.body.accessToken;
 };
+
+export const refreshCookieFrom = (response: request.Response): string =>
+  (response.headers["set-cookie"] as unknown as string[])
+    .find((cookie) => cookie.startsWith("refresh_token="))!
+    .split(";")[0];
 
 export const createProgram = async (
   app: NestExpressApplication,

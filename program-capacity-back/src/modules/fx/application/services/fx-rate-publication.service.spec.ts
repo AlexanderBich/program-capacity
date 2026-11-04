@@ -23,20 +23,24 @@ const buildService = (params: { historyFails?: Error; currentFails?: Error } = {
     }),
   };
   const history = {
-    insertIfPairAndAsOfAbsent: jest.fn(async (manager: EntityManager, values: FxRateQuote) => {
-      if (params.historyFails) {
-        throw params.historyFails;
-      }
-      steps.push({ step: "history", manager, rate: values });
-    }),
+    insertIfPairAndAsOfAbsent: jest.fn(
+      async (values: FxRateQuote, options: { manager: EntityManager }) => {
+        if (params.historyFails) {
+          throw params.historyFails;
+        }
+        steps.push({ step: "history", manager: options.manager, rate: values });
+      },
+    ),
   };
   const current = {
-    upsertIfNewerThanStored: jest.fn(async (manager: EntityManager, values: FxRateQuote) => {
-      if (params.currentFails) {
-        throw params.currentFails;
-      }
-      steps.push({ step: "current", manager, rate: values });
-    }),
+    upsertIfNewerThanStored: jest.fn(
+      async (values: FxRateQuote, options: { manager: EntityManager }) => {
+        if (params.currentFails) {
+          throw params.currentFails;
+        }
+        steps.push({ step: "current", manager: options.manager, rate: values });
+      },
+    ),
   };
   const service = new FxRatePublicationService(
     dataSource as unknown as DataSource,

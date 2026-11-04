@@ -507,7 +507,7 @@ describe("AvailabilityChangeChannelClient", () => {
     it("sends the NOTIFY through the manager of the caller's transaction", async () => {
       const manager = { query: jest.fn().mockResolvedValue([]) };
 
-      await client.publishInTransaction(manager as unknown as EntityManager, change);
+      await client.publishInTransaction(change, { manager: manager as unknown as EntityManager });
 
       expect(manager.query).toHaveBeenCalledTimes(1);
       expect(manager.query).toHaveBeenCalledWith("SELECT pg_notify($1, $2)", [
@@ -520,7 +520,7 @@ describe("AvailabilityChangeChannelClient", () => {
       const manager = { query: jest.fn().mockResolvedValue([]) };
       await client.onModuleInit();
 
-      await client.publishInTransaction(manager as unknown as EntityManager, change);
+      await client.publishInTransaction(change, { manager: manager as unknown as EntityManager });
       const [, [channel, payload]] = manager.query.mock.calls[0];
       clients[0].emit("notification", { channel, payload });
 
@@ -531,7 +531,7 @@ describe("AvailabilityChangeChannelClient", () => {
       const manager = { query: jest.fn().mockResolvedValue([]) };
       await client.onModuleInit();
 
-      await client.publishInTransaction(manager as unknown as EntityManager, change);
+      await client.publishInTransaction(change, { manager: manager as unknown as EntityManager });
 
       expect(clients[0].query.mock.calls).toEqual([[LISTEN_STATEMENT]]);
     });
@@ -541,7 +541,7 @@ describe("AvailabilityChangeChannelClient", () => {
       const manager = { query: jest.fn().mockRejectedValue(failure) };
 
       await expect(
-        client.publishInTransaction(manager as unknown as EntityManager, change),
+        client.publishInTransaction(change, { manager: manager as unknown as EntityManager }),
       ).rejects.toBe(failure);
     });
   });

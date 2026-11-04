@@ -94,7 +94,7 @@ describe("ReservationService", () => {
     getByIdOrThrow = jest.fn(async () => program);
     withLockedProgramById = jest.fn((_programId, work) => work(manager, lockedProgram));
     findByProgramIdAndInvoiceId = jest.fn().mockResolvedValue(null);
-    createReservation = jest.fn(async (_manager: EntityManager, values: CreateReservation) =>
+    createReservation = jest.fn(async (values: CreateReservation) =>
       Object.assign(new ReservationEntity(), { id: "reservation-1" }, values),
     );
     commitChange = jest.fn().mockResolvedValue(updatedProgram);
@@ -121,24 +121,27 @@ describe("ReservationService", () => {
     it("holds the invoice amount against the program and records it in the ledger and for treasury", async () => {
       const result = await service.reserve(request);
 
-      expect(createReservation).toHaveBeenCalledWith(manager, {
-        programId: "program-1",
-        invoiceId: "INV-1",
-        status: ReservationStatus.ACTIVE,
-        source: CapacityChangeSource.API,
-        invoiceCurrency: "USD",
-        invoiceAmountMinor: 12500n,
-        outstandingInvoiceMinor: 12500n,
-        programCurrency: "USD",
-        programAmountMinor: 12500n,
-        outstandingProgramMinor: 12500n,
-        fxBaseCurrency: null,
-        fxQuoteCurrency: null,
-        fxRate: null,
-        fxRateAsOf: null,
-        createdBy: "operator@capacity.local",
-        lastApiChangeAt: now,
-      });
+      expect(createReservation).toHaveBeenCalledWith(
+        {
+          programId: "program-1",
+          invoiceId: "INV-1",
+          status: ReservationStatus.ACTIVE,
+          source: CapacityChangeSource.API,
+          invoiceCurrency: "USD",
+          invoiceAmountMinor: 12500n,
+          outstandingInvoiceMinor: 12500n,
+          programCurrency: "USD",
+          programAmountMinor: 12500n,
+          outstandingProgramMinor: 12500n,
+          fxBaseCurrency: null,
+          fxQuoteCurrency: null,
+          fxRate: null,
+          fxRateAsOf: null,
+          createdBy: "operator@capacity.local",
+          lastApiChangeAt: now,
+        },
+        { manager },
+      );
       expect(commitChange).toHaveBeenCalledTimes(1);
       expect(commitChange).toHaveBeenCalledWith(manager, {
         program: lockedProgram,
@@ -175,7 +178,7 @@ describe("ReservationService", () => {
       await service.reserve({ ...request, amount: "125.55", currency: "EUR" });
 
       expect(getFreshRateForPairOrThrow).toHaveBeenCalledWith("EUR", "USD");
-      expect(createReservation.mock.calls[0][1]).toMatchObject({
+      expect(createReservation.mock.calls[0][0]).toMatchObject({
         invoiceCurrency: "EUR",
         invoiceAmountMinor: 12555n,
         outstandingInvoiceMinor: 12555n,
@@ -210,7 +213,7 @@ describe("ReservationService", () => {
 
       await service.reserve({ ...request, amount: "15000", currency: "JPY" });
 
-      expect(createReservation.mock.calls[0][1]).toMatchObject({
+      expect(createReservation.mock.calls[0][0]).toMatchObject({
         invoiceCurrency: "JPY",
         invoiceAmountMinor: 15000n,
         programCurrency: "USD",
@@ -355,7 +358,11 @@ describe("ReservationService", () => {
       expect(result.reservation).toBe(winner);
       expect(result.program).toBe(lockedProgram);
       expect(result.isIdempotentReplay).toBe(true);
-      expect(findByProgramIdAndInvoiceId.mock.calls[1]).toEqual(["program-1", "INV-1", manager]);
+      expect(findByProgramIdAndInvoiceId.mock.calls[1]).toEqual([
+        "program-1",
+        "INV-1",
+        { manager },
+      ]);
       expect(createReservation).not.toHaveBeenCalled();
       expect(commitChange).not.toHaveBeenCalled();
       expect(recordReservation.mock.calls).toEqual([["replayed"]]);

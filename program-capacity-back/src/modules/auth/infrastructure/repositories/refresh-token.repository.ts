@@ -15,37 +15,46 @@ export class RefreshTokenRepository {
   ) {}
 
   /** Serializes everything done to one session family. Released when the surrounding transaction ends. */
-  async lockFamilyForTransaction(manager: EntityManager, familyId: string): Promise<void> {
-    await manager.query("SELECT pg_advisory_xact_lock(hashtextextended($1, 0))", [familyId]);
+  async lockFamilyForTransaction(
+    familyId: string,
+    options: { manager: EntityManager },
+  ): Promise<void> {
+    await options.manager.query("SELECT pg_advisory_xact_lock(hashtextextended($1, 0))", [
+      familyId,
+    ]);
   }
 
   findByTokenHashWithUser(
     tokenHash: string,
-    manager: EntityManager = this.refreshTokenRepositoryRaw.manager,
+    options?: { manager?: EntityManager },
   ): Promise<Nullable<RefreshTokenEntity>> {
+    const manager = options?.manager ?? this.refreshTokenRepositoryRaw.manager;
     return manager.findOne(RefreshTokenEntity, {
       where: { tokenHash },
       relations: { user: true },
     });
   }
 
-  async create(manager: EntityManager, values: CreateRefreshToken): Promise<void> {
+  async create(values: CreateRefreshToken, options?: { manager?: EntityManager }): Promise<void> {
+    const manager = options?.manager ?? this.refreshTokenRepositoryRaw.manager;
     await manager.insert(RefreshTokenEntity, values);
   }
 
   async markRotatedByIdIfNotYetRotated(
-    manager: EntityManager,
     id: string,
     rotatedAt: Date,
+    options?: { manager?: EntityManager },
   ): Promise<void> {
+    const manager = options?.manager ?? this.refreshTokenRepositoryRaw.manager;
     await manager.update(RefreshTokenEntity, { id, rotatedAt: IsNull() }, { rotatedAt });
   }
 
   async revokeActiveByFamilyId(
-    manager: EntityManager,
     familyId: string,
     revokedAt: Date,
+    options?: { manager?: EntityManager },
   ): Promise<void> {
+    const manager = options?.manager ?? this.refreshTokenRepositoryRaw.manager;
     await manager.update(RefreshTokenEntity, { familyId, revokedAt: IsNull() }, { revokedAt });
   }
 
